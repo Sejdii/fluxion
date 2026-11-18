@@ -1,0 +1,3 @@
+# Output ports return neutral PR activity records, and the core owns the metric rules
+
+The pull-request source port returns neutral activity records for each pull request: authors, bot flags, draft and ready events, comments and reviews with actor and time, additions, deletions and the merge time. The core applies the rules in `GLOSSARY.md` (human reviewer, first response, clock start) to those records. Adapters only translate their host's data into records. We rejected adapters returning finished metrics because the definitions would then be duplicated per host, outside the core's 100% unit coverage, and a new adapter (GitLab, Bitbucket) could silently define them differently.

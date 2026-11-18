@@ -1,0 +1,3 @@
+# Metrics are registered definitions
+
+Each metric is a definition in an in-code registry in the core: an id, a family, the statistics it supports and its calculation. A family (such as pull requests) declares its own output ports, so a later family (DORA, with deployment and ticket ports) adds ports without changing the pull-request ones. The CLI and the HTTP API work for any metric id in the registry, so a new metric does not change them. v1 builds only the registry; loading plugins from outside is not built, and a later plugin would only register definitions. We rejected hard-coding each metric in the CLI and frontend because every future metric would then touch every layer.
