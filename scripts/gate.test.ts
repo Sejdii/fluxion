@@ -1,4 +1,4 @@
-import { cpSync, mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -21,6 +21,7 @@ function cruise(files: Record<string, string>): string[] {
     ['packages', '--config', '.dependency-cruiser.cjs', '-T', 'json'],
     { cwd: dir, encoding: 'utf8' },
   );
+  rmSync(dir, { recursive: true, force: true });
   return checkDepcruiseOutput(result.stdout + result.stderr);
 }
 
@@ -109,4 +110,10 @@ test('outputWithoutJsonFailsGate', () => {
   const problems = checkDepcruiseOutput('boom');
 
   expect(problems).toEqual(['dependency-cruiser produced no JSON report']);
+});
+
+test('stderrNoiseAfterJsonStillParsesReport', () => {
+  const problems = checkDepcruiseOutput('{"summary":{"totalCruised":3,"violations":[]}}\nwarning: something');
+
+  expect(problems).toEqual([]);
 });

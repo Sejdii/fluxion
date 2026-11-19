@@ -15,7 +15,8 @@ export function checkDepcruiseOutput(raw: string): string[] {
   }
   const start = raw.indexOf('{');
   if (start === -1) return [...problems, 'dependency-cruiser produced no JSON report'];
-  const report = JSON.parse(raw.slice(start)) as DepcruiseReport;
+  const end = raw.lastIndexOf('}');
+  const report = JSON.parse(raw.slice(start, end + 1)) as DepcruiseReport;
   if (report.summary.totalCruised === 0) problems.push('dependency-cruiser cruised zero modules');
   for (const v of report.summary.violations) {
     problems.push(`${v.rule.name}: ${v.from} -> ${v.to}`);
