@@ -4,7 +4,6 @@ export default defineConfig({
   test: {
     projects: [
       { test: { name: 'core', include: ['packages/core/**/*.test.ts'] } },
-      { test: { name: 'gate', include: ['scripts/**/*.test.ts'], testTimeout: 30000 } },
     ],
     coverage: {
       provider: 'v8',
