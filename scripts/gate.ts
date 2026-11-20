@@ -19,7 +19,7 @@ function fail(message: string): never {
 
 function dependencyCruiser(): void {
   console.log('\n== dependency-cruiser');
-  const { stdout } = run('pnpm', ['exec', 'depcruise', 'packages', '--config', '.dependency-cruiser.cjs', '-T', 'json']);
+  const { stdout } = run('pnpm', ['exec', 'depcruise', 'packages', '--config', '.dependency-cruiser.mjs', '-T', 'json']);
   const problems = checkDepcruiseOutput(stdout);
   if (problems.length > 0) fail(`dependency-cruiser\n  ${problems.join('\n  ')}`);
   console.log('no dependency violations');

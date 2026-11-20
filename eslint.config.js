@@ -1,6 +1,7 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import globals from 'globals';
+import { defineConfig } from 'eslint/config';
 
 const limits = {
   'max-lines-per-function': ['error', 30],
@@ -10,11 +11,16 @@ const limits = {
   complexity: ['error', 10],
 };
 
-export default tseslint.config(
+export default defineConfig(
   { ignores: ['**/dist/**', 'coverage/**', 'test-results/**', '.claude/**'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   { files: ['**/*.ts'], rules: limits },
+  {
+    files: ['**/*.ts'],
+    languageOptions: { parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname } },
+    rules: { '@typescript-eslint/no-deprecated': 'error' },
+  },
   { files: ['**/*.cjs'], languageOptions: { globals: globals.node } },
   {
     files: ['packages/web/**/*.ts'],
