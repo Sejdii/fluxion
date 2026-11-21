@@ -1,4 +1,4 @@
-import type { Actor, DateRange, DraftEvent, PullRequestActivity, RepositoryRef, ReviewActivity, ReviewSubmission } from '@fluxion/core';
+import type { Actor, DateRange, DraftEvent, FetchedPullRequest, PullRequestActivity, RepositoryRef, ReviewActivity, ReviewSubmission } from '@fluxion/core';
 import type { GraphqlVariables } from './github-api.js';
 
 const PAGE_SIZE = 100;
@@ -8,14 +8,7 @@ const THREAD_PAGE_SIZE = 20;
 
 export const GITHUB_SEARCH_RESULT_LIMIT = 1000;
 
-export const MERGED_PULL_REQUESTS_DOCUMENT = `
-query($searchQuery: String!, $cursor: String) {
-  rateLimit { cost remaining resetAt }
-  search(query: $searchQuery, type: ISSUE, first: ${PAGE_SIZE}, after: $cursor) {
-    issueCount
-    pageInfo { hasNextPage endCursor }
-    nodes {
-      ... on PullRequest {
+const PULL_REQUEST_FIELDS = `
         number
         createdAt
         mergedAt
@@ -33,8 +26,25 @@ query($searchQuery: String!, $cursor: String) {
         reviews(first: ${NESTED_PAGE_SIZE}) { nodes { submittedAt body author { login __typename } } }
         reviewThreads(first: ${THREAD_PAGE_SIZE}) {
           nodes { comments(first: ${NESTED_PAGE_SIZE}) { nodes { createdAt author { login __typename } } } }
-        }
+        }`;
+
+export const MERGED_PULL_REQUESTS_DOCUMENT = `
+query($searchQuery: String!, $cursor: String) {
+  rateLimit { cost remaining resetAt }
+  search(query: $searchQuery, type: ISSUE, first: ${PAGE_SIZE}, after: $cursor) {
+    issueCount
+    pageInfo { hasNextPage endCursor }
+    nodes {
+      ... on PullRequest {${PULL_REQUEST_FIELDS}
       }
+    }
+  }
+}`;
+
+export const PULL_REQUEST_DOCUMENT = `
+query($owner: String!, $name: String!, $number: Int!) {
+  repository(owner: $owner, name: $name) {
+    pullRequest(number: $number) {${PULL_REQUEST_FIELDS}
     }
   }
 }`;
@@ -44,10 +54,10 @@ interface ActorNode {
   __typename: string;
 }
 
-interface SearchNode {
+interface PullRequestNode {
   number: number;
   createdAt: string;
-  mergedAt: string;
+  mergedAt: string | null;
   additions: number;
   deletions: number;
   author: ActorNode | null;
@@ -56,6 +66,8 @@ interface SearchNode {
   reviews: { nodes: { submittedAt: string | null; body: string; author: ActorNode | null }[] };
   reviewThreads: { nodes: { comments: { nodes: { createdAt: string; author: ActorNode | null }[] } }[] };
 }
+
+type SearchNode = PullRequestNode & { mergedAt: string };
 
 export interface RateLimit {
   cost: number;
@@ -92,17 +104,17 @@ function toDraftEvent(node: { __typename: string; createdAt: string }): DraftEve
   return { kind: node.__typename === 'ReadyForReviewEvent' ? 'ready_for_review' : 'converted_to_draft', at: node.createdAt };
 }
 
-function toReviews(nodes: SearchNode['reviews']['nodes']): ReviewSubmission[] {
+function toReviews(nodes: PullRequestNode['reviews']['nodes']): ReviewSubmission[] {
   return nodes.flatMap((node) =>
     node.submittedAt ? [{ actor: toActor(node.author), at: node.submittedAt, hasBody: node.body.trim() !== '' }] : [],
   );
 }
 
-function toReviewComments(threads: SearchNode['reviewThreads']['nodes']): ReviewActivity[] {
+function toReviewComments(threads: PullRequestNode['reviewThreads']['nodes']): ReviewActivity[] {
   return threads.flatMap((thread) => thread.comments.nodes.map((comment) => ({ actor: toActor(comment.author), at: comment.createdAt })));
 }
 
-function toActivity(node: SearchNode): PullRequestActivity {
+function toFetched(node: PullRequestNode): FetchedPullRequest {
   return {
     number: node.number,
     author: toActor(node.author),
@@ -115,6 +127,20 @@ function toActivity(node: SearchNode): PullRequestActivity {
     reviewComments: toReviewComments(node.reviewThreads.nodes),
     reviews: toReviews(node.reviews.nodes),
   };
+}
+
+function toActivity(node: SearchNode): PullRequestActivity {
+  return { ...toFetched(node), mergedAt: node.mergedAt };
+}
+
+export function toPullRequest(raw: unknown): FetchedPullRequest | null {
+  const { repository } = raw as { repository: { pullRequest: PullRequestNode | null } | null };
+  const node = repository?.pullRequest;
+  return node ? toFetched(node) : null;
+}
+
+export function pullRequestVariables(repository: RepositoryRef, number: number): GraphqlVariables {
+  return { owner: repository.owner, name: repository.name, number };
 }
 
 export function toPage(raw: unknown): MergedPullRequestsPage {

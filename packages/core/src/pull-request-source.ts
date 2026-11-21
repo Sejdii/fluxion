@@ -38,8 +38,13 @@ export interface PullRequestActivity {
   reviews: ReviewSubmission[];
 }
 
+export interface FetchedPullRequest extends Omit<PullRequestActivity, 'mergedAt'> {
+  mergedAt: string | null;
+}
+
 export interface PullRequestSource {
   mergedPullRequests(repository: RepositoryRef, range: DateRange): Promise<PullRequestActivity[]>;
+  pullRequest(repository: RepositoryRef, number: number): Promise<FetchedPullRequest | null>;
 }
 
 export function repositoryKey(repository: RepositoryRef): string {

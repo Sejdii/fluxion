@@ -5,6 +5,7 @@ export type {
   Actor,
   DateRange,
   DraftEvent,
+  FetchedPullRequest,
   PullRequestActivity,
   PullRequestSource,
   RepositoryFinder,
@@ -20,3 +21,7 @@ export type { MetricSummary } from './registry.js';
 export { InMemoryCache } from './cache.js';
 export type { Cache } from './cache.js';
 export { CachingPullRequestSource } from './caching-pull-request-source.js';
+export { explainPullRequest } from './explain-pull-request.js';
+export type { ExplainPorts, ExplainRequest, Explanation, PullRequestFacts } from './explain-pull-request.js';
+export type { FirstResponse } from './review-time.js';
+export type { MetricValue } from './registry.js';

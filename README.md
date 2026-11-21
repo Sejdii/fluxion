@@ -2,7 +2,7 @@
 
 Fluxion measures whether a software team is getting faster, by showing trends in how pull requests move through review. It reads merged pull requests from GitHub through the `gh` CLI. Terms are defined in [GLOSSARY.md](GLOSSARY.md).
 
-Status: early. Six metrics work so far: `fluxion pr prsMerged total <period>`, `fluxion pr prSize|comments|reviewers median|p90 <period>`, and `fluxion pr reviewWaitingTime|totalReviewTime median|p90 <period>` (hours; periods with fewer than 5 merged PRs flag the median as `low n` and show no p90).
+Status: early. Six metrics work so far: `fluxion pr prsMerged total <period>`, `fluxion pr prSize|comments|reviewers median|p90 <period>`, and `fluxion pr reviewWaitingTime|totalReviewTime median|p90 <period>` (hours; periods with fewer than 5 merged PRs flag the median as `low n` and show no p90). `fluxion pr explain <number>` shows the facts behind one pull request's values.
 
 ## Setup
 
@@ -88,6 +88,38 @@ period   reviewWaitingTime (hours)  n
 - `comments`: human issue comments, inline review comments and non-empty review bodies, including the author's replies. Bots are excluded.
 - `reviewers`: distinct humans other than the author who commented or submitted a review. People who were only asked to review do not count.
 - Only the first 100 comments and reviews, and the first 20 inline review threads (20 comments each), of a PR are read.
+
+### Explaining one pull request
+
+`fluxion pr explain <number>` prints every metric's value for one pull request, with the facts behind them, so you can check a number by hand:
+
+```bash
+fluxion pr explain 35
+```
+
+```text
+pull request #35 (merged)
+
+facts
+  ready for review   2026-11-21T15:40:26Z
+  first response     2026-11-21T15:49:07Z (the merge)
+  merged             2026-11-21T15:49:07Z
+  comments counted   0
+  reviewers counted  0
+
+values
+  prsMerged          1
+  reviewWaitingTime  0.14 hours
+  totalReviewTime    0.14 hours
+  prSize             425 lines
+  comments           0
+  reviewers          0
+```
+
+- `--json` prints the same facts and values as JSON.
+- `--repos <path>` picks the repository by relative path. It must name exactly one repository: several (`--repos a,b` or a repeated flag) are a usage error (exit `1`).
+- An unmerged pull request prints its facts and `not merged, no values`.
+- A pull request number that does not exist in the repository is a data error (exit `2`).
 
 ## Development
 
