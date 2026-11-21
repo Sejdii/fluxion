@@ -2,8 +2,8 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, expect, test } from 'vitest';
-import { createRunMetric } from './config.js';
-import { runCli } from './program.js';
+import { createRunMetric } from '../src/config.js';
+import { runCli } from '../src/program.js';
 
 let workDir: string;
 

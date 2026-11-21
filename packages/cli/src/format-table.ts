@@ -1,6 +1,5 @@
 import type { MetricRow } from '@fluxion/core';
 
-/** Plain text table with one row per period; a period without a value shows `-`. */
 export function formatTable(metric: string, rows: MetricRow[]): string {
   const cells = [['period', metric, 'n'], ...rows.map((r) => [r.period, r.value === null ? '-' : String(r.value), String(r.n)])];
   const widths = [0, 1, 2].map((column) => Math.max(...cells.map((row) => (row[column] ?? '').length)));

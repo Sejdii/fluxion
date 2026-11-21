@@ -5,7 +5,6 @@ export interface MetricDefinition {
   family: string;
   description: string;
   statistics: readonly string[];
-  /** Value of the metric over the merged pull requests of one period; `null` when it is undefined (e.g. a median of nothing). */
   calculate(pullRequests: PullRequestActivity[]): number | null;
 }
 

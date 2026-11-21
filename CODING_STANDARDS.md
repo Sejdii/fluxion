@@ -1,3 +1,11 @@
+# Code
+
+## Comments
+
+- Code shouldn't have comments. This includes doc comments (`/** */`) and line comments.
+- Fix: make the code readable enough that a comment isn't needed. Rename the variable, function or type, extract a function with a name that states the intent, or replace a magic value with a named constant.
+- Tooling directives (for example, `eslint-disable`) are not comments in this sense, but each one needs a reason that cannot be solved in the code.
+
 # Testing
 
 ## Scope and Terms
@@ -51,6 +59,11 @@ A mapper that needs mocks for its own dependencies is a design problem. Mappers 
 - A test shouldn't combine two independent behaviors. Behaviors are independent when they can change for different reasons. Example: "create user" and "send welcome email".
 - The test name should state the behavior. Example: `shouldReserveRoom`.
 - The test should have three separate, clear parts: given, when, then.
+
+### Test Location
+
+- Tests shouldn't be mixed with production code. Each package keeps its tests in a `test` folder next to `src`.
+- Test files are named `<behavior>.test.ts` and import production code from `../src`.
 
 ### What Not to Unit Test
 

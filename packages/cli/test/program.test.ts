@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { DataError, UsageError, type MetricRequest, type MetricResult } from '@fluxion/core';
-import { runCli, type RunMetric } from './program.js';
+import { runCli, type RunMetric } from '../src/program.js';
 
 interface Outcome {
   code: number;

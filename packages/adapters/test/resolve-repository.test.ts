@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, expect, test } from 'vitest';
-import { parseGitHubRemote, resolveCurrentRepository } from './resolve-repository.js';
+import { parseGitHubRemote, resolveCurrentRepository } from '../src/git/resolve-repository.js';
 
 let workDir: string;
 

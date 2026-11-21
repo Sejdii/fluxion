@@ -55,7 +55,6 @@ function exitCodeOf(error: unknown, io: CliIo): number {
   return error instanceof UsageError ? EXIT_USAGE : EXIT_DATA;
 }
 
-/** Runs the command line and returns the process exit code. */
 export async function runCli(args: string[], run: RunMetric, io: CliIo): Promise<number> {
   try {
     await buildProgram(run, io).parseAsync(args, { from: 'user' });

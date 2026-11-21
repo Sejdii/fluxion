@@ -10,7 +10,7 @@ import {
   type MetricRequest,
   type PullRequestActivity,
   type RepositoryRef,
-} from './index.js';
+} from '../src/index.js';
 
 const repository: RepositoryRef = { host: 'github', owner: 'acme', name: 'app' };
 const now = new Date('2026-03-20T10:00:00Z');

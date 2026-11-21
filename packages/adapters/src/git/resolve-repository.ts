@@ -19,7 +19,6 @@ async function remoteUrls(directory: string): Promise<string[]> {
   return output.split('\n').map((line) => line.split(/\s+/)[1] ?? '');
 }
 
-/** The GitHub repository that the git repository containing `directory` points at. */
 export async function resolveCurrentRepository(directory: string): Promise<RepositoryRef> {
   const urls = await remoteUrls(directory).catch(() => {
     throw new DataError(`${directory} is not inside a git repository`);

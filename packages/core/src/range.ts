@@ -25,7 +25,6 @@ export function resolveRange(since: string | undefined, until: string | undefine
   return { since: start, until: end };
 }
 
-/** Every UTC month, as `YYYY-MM`, that the range touches. */
 export function monthLabelsOf(range: DateRange): string[] {
   const months: string[] = [];
   let year = Number(range.since.slice(0, 4));

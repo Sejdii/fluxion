@@ -19,7 +19,6 @@ export interface MetricRequest {
 
 export interface MetricRow {
   period: string;
-  /** Number of merged pull requests in the period. */
   n: number;
   value: number | null;
 }
