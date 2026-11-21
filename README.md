@@ -17,15 +17,15 @@ pnpm install
 
 ## Link the command
 
-Fluxion analyses the git repository you run it in, so you need to call it from other repositories. Link it globally, as with `npm link`:
+Fluxion analyses the git repository you run it in, so you need to call it from other repositories. Link it globally:
 
 ```bash
-pnpm setup                         # once, if pnpm has no global bin directory yet
-pnpm --filter @fluxion/cli link --global
+pnpm setup                                 # once; adds pnpm's global bin directory to PATH
+pnpm add --global link:./packages/cli      # run from the clone
 fluxion --help
 ```
 
-Open a new shell after `pnpm setup`. To remove the link: `pnpm uninstall --global @fluxion/cli`. Inside the clone you can also use `pnpm fluxion <args>`.
+Open a new shell after `pnpm setup`. The link points at your clone, so edits take effect immediately. (`pnpm link --global` no longer exists in recent pnpm versions.) To remove it: `pnpm remove --global @fluxion/cli`. Inside the clone you can also use `pnpm fluxion <args>`.
 
 ## Usage
 
