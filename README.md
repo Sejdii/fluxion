@@ -17,13 +17,15 @@ pnpm install
 
 ## Link the command
 
-Fluxion analyses the git repository you run it in, so you need to call it from other repositories. Make an alias that points at your clone (add it to `~/.bashrc` or `~/.zshrc`):
+Fluxion analyses the git repository you run it in, so you need to call it from other repositories. Link it globally, as with `npm link`:
 
 ```bash
-alias fluxion='/path/to/fluxion/node_modules/.bin/tsx /path/to/fluxion/packages/cli/src/bin.ts'
+pnpm setup                         # once, if pnpm has no global bin directory yet
+pnpm --filter @fluxion/cli link --global
+fluxion --help
 ```
 
-Inside the clone itself you can use `pnpm fluxion <args>` instead.
+Open a new shell after `pnpm setup`. To remove the link: `pnpm uninstall --global @fluxion/cli`. Inside the clone you can also use `pnpm fluxion <args>`.
 
 ## Usage
 
