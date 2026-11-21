@@ -225,3 +225,13 @@ test('usageMistakeIsReportedBeforeTheRepositoryIsLookedUp', async () => {
 
   await expect(result).rejects.toThrow(UsageError);
 });
+
+test('unmergedPullRequestsAreNotCountedInRangeQueries', async () => {
+  const source = new InMemoryPullRequestSource();
+  source.set(repository, [{ ...mergedAt('2026-01-10T00:00:00Z'), mergedAt: null }]);
+  const ports = { pullRequests: source, repositories: new InMemoryRepositoryFinder(repository) };
+
+  const result = await queryMetric(ports, request({ period: 'overall', since: '2026-01-01', until: '2026-01-31' }), now);
+
+  expect(result.rows[0]?.value).toBe(0);
+});

@@ -1,9 +1,9 @@
-import { isHumanReviewer } from './human-reviewer.js';
+import { DELETED_ACCOUNT, isHumanReviewer } from './human-reviewer.js';
 import type { FetchedPullRequest, PullRequestActivity, ReviewActivity } from './pull-request-source.js';
 
 const MS_PER_HOUR = 60 * 60 * 1000;
 
-export type FirstResponse = { kind: 'human'; by: string | null; at: string } | { kind: 'merge'; at: string };
+export type FirstResponse = { kind: 'human'; by: string; at: string } | { kind: 'merge'; at: string };
 
 export function readyForReviewAt(pullRequest: FetchedPullRequest): string {
   const [firstDraftEvent] = pullRequest.draftEvents;
@@ -22,7 +22,7 @@ function firstHumanResponse(pullRequest: FetchedPullRequest): ReviewActivity | u
 
 export function firstResponseOf(pullRequest: FetchedPullRequest): FirstResponse | null {
   const first = firstHumanResponse(pullRequest);
-  if (first) return { kind: 'human', by: first.actor?.login ?? null, at: first.at };
+  if (first) return { kind: 'human', by: first.actor?.login ?? DELETED_ACCOUNT, at: first.at };
   return pullRequest.mergedAt === null ? null : { kind: 'merge', at: pullRequest.mergedAt };
 }
 

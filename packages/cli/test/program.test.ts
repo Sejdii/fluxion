@@ -20,7 +20,6 @@ const result: MetricResult = {
 
 const mergedExplanation: Explanation = {
   number: 7,
-  merged: true,
   facts: {
     readyForReviewAt: '2026-01-05T08:00:00Z',
     firstResponse: { kind: 'human', by: 'bob', at: '2026-01-05T10:00:00Z' },
@@ -36,7 +35,6 @@ const mergedExplanation: Explanation = {
 
 const unmergedExplanation: Explanation = {
   number: 8,
-  merged: false,
   facts: { readyForReviewAt: '2026-01-05T08:00:00Z', firstResponse: null, mergedAt: null, comments: 0, reviewers: [] },
   values: null,
 };
@@ -167,11 +165,8 @@ test('marksTheUnfinishedPeriodInTheTable', async () => {
 test('explainPrintsTheFactsAndValuesOfAMergedPullRequest', async () => {
   const outcome = await run(['pr', 'explain', '7']);
 
-  expect(outcome).toMatchObject({
-    code: 0,
-    stderr: '',
-    explained: [{ number: 7 }],
-    stdout: [
+  expect(outcome.stdout).toBe(
+    [
       'pull request #7 (merged)',
       '',
       'facts',
@@ -186,7 +181,19 @@ test('explainPrintsTheFactsAndValuesOfAMergedPullRequest', async () => {
       '  comments           3',
       '',
     ].join('\n'),
-  });
+  );
+});
+
+test('explainSucceedsWithExitCode0AndNothingOnStderr', async () => {
+  const outcome = await run(['pr', 'explain', '7']);
+
+  expect({ code: outcome.code, stderr: outcome.stderr }).toEqual({ code: 0, stderr: '' });
+});
+
+test('explainPassesThePullRequestNumberToTheUseCase', async () => {
+  const outcome = await run(['pr', 'explain', '7']);
+
+  expect(outcome.explained).toEqual([{ number: 7 }]);
 });
 
 test('explainPrintsNotMergedNoValuesForAnUnmergedPullRequest', async () => {
@@ -215,15 +222,26 @@ test('explainWithJsonPrintsTheExplanation', async () => {
   expect(JSON.parse(outcome.stdout)).toEqual(mergedExplanation);
 });
 
-test('explainWithSeveralRepositoriesIsAUsageError', async () => {
+test('explainWithSeveralRepositoriesIsAUsageErrorWithExit1', async () => {
   const outcome = await run(['pr', 'explain', '7', '--repos', 'api,web']);
 
-  expect(outcome).toMatchObject({
+  expect({ code: outcome.code, stdout: outcome.stdout, stderr: outcome.stderr }).toEqual({
     code: 1,
     stdout: '',
-    explained: [],
     stderr: 'error: explain works on exactly one repository, got 2: api, web\n',
   });
+});
+
+test('explainWithRepeatedReposFlagsIsAUsageError', async () => {
+  const outcome = await run(['pr', 'explain', '7', '--repos', 'api', '--repos', 'web']);
+
+  expect(outcome.stderr).toBe('error: explain works on exactly one repository, got 2: api, web\n');
+});
+
+test('explainWithSeveralRepositoriesDoesNotRunTheUseCase', async () => {
+  const outcome = await run(['pr', 'explain', '7', '--repos', 'api,web']);
+
+  expect(outcome.explained).toEqual([]);
 });
 
 test('explainWithOneRepositoryPassesItToTheUseCase', async () => {
@@ -245,7 +263,7 @@ test('explainDataErrorExitsWith2', async () => {
 });
 
 test('explainNamesADeletedAccountAsTheFirstResponder', async () => {
-  const deleted: Explanation = { ...mergedExplanation, facts: { ...mergedExplanation.facts, firstResponse: { kind: 'human', by: null, at: '2026-01-05T10:00:00Z' } } };
+  const deleted: Explanation = { ...mergedExplanation, facts: { ...mergedExplanation.facts, firstResponse: { kind: 'human', by: '(deleted account)', at: '2026-01-05T10:00:00Z' } } };
 
   const outcome = await run(['pr', 'explain', '7'], undefined, () => Promise.resolve(deleted));
 

@@ -1,7 +1,5 @@
-import { isHuman, isHumanReviewer } from './human-reviewer.js';
+import { DELETED_ACCOUNT, isHuman, isHumanReviewer } from './human-reviewer.js';
 import type { FetchedPullRequest, PullRequestActivity } from './pull-request-source.js';
-
-const DELETED_ACCOUNT = '(deleted account)';
 
 export function prSize(pullRequest: PullRequestActivity): number {
   return pullRequest.additions + pullRequest.deletions;

@@ -1,5 +1,7 @@
 import type { Actor, FetchedPullRequest } from './pull-request-source.js';
 
+export const DELETED_ACCOUNT = '(deleted account)';
+
 export function isHuman(actor: Actor): boolean {
   return actor === null || !actor.isBot;
 }

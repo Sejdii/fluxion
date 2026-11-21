@@ -23,7 +23,6 @@ export interface PullRequestFacts {
 
 export interface Explanation {
   number: number;
-  merged: boolean;
   facts: PullRequestFacts;
   values: MetricValue[] | null;
 }
@@ -38,7 +37,6 @@ export async function explainPullRequest(ports: ExplainPorts, request: ExplainRe
   if (!pullRequest) throw new DataError(`Pull request #${request.number} was not found in ${repository.owner}/${repository.name}`);
   return {
     number: pullRequest.number,
-    merged: isMerged(pullRequest),
     facts: {
       readyForReviewAt: readyForReviewAt(pullRequest),
       firstResponse: firstResponseOf(pullRequest),

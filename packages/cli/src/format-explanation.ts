@@ -4,7 +4,7 @@ const NOT_MERGED_NO_VALUES = 'not merged, no values';
 
 function firstResponseText(response: FirstResponse | null): string {
   if (response === null) return 'none yet';
-  return response.kind === 'human' ? `${response.at} by ${response.by ?? '(deleted account)'}` : `${response.at} (the merge)`;
+  return response.kind === 'human' ? `${response.at} by ${response.by}` : `${response.at} (the merge)`;
 }
 
 function reviewersText(reviewers: string[]): string {
@@ -31,7 +31,7 @@ export function formatExplanation(explanation: Explanation): string {
     ['comments counted', String(facts.comments)],
     ['reviewers counted', reviewersText(facts.reviewers)],
   ];
-  const heading = `pull request #${explanation.number} (${explanation.merged ? 'merged' : 'not merged'})`;
+  const heading = `pull request #${explanation.number} (${facts.mergedAt === null ? 'not merged' : 'merged'})`;
   return [heading, '', 'facts', ...aligned(factRows), '', ...valueLines(explanation), ''].join('\n');
 }
 

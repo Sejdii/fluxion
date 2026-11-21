@@ -4,7 +4,6 @@ import {
   InMemoryPullRequestSource,
   InMemoryRepositoryFinder,
   explainPullRequest,
-  queryMetric,
   type Actor,
   type FetchedPullRequest,
   type RepositoryRef,
@@ -76,30 +75,43 @@ test('showsTheMergeAsFirstResponseWhenNoHumanResponded', async () => {
   expect(explanation.facts.firstResponse).toEqual({ kind: 'merge', at: '2026-01-05T18:00:00Z' });
 });
 
-test('countsOnlyHumanCommentsAndReviewers', async () => {
-  const pr = pullRequest({
-    comments: [
-      { actor: bob, at: '2026-01-05T10:00:00Z' },
-      { actor: buildBot, at: '2026-01-05T10:05:00Z' },
-      { actor: author, at: '2026-01-05T11:00:00Z' },
-    ],
-  });
-
-  const explanation = await explain(7, pr);
-
-  expect(explanation.facts).toMatchObject({ comments: 2, reviewers: ['bob'] });
+const humanAndBotComments = pullRequest({
+  comments: [
+    { actor: bob, at: '2026-01-05T10:00:00Z' },
+    { actor: buildBot, at: '2026-01-05T10:05:00Z' },
+    { actor: author, at: '2026-01-05T11:00:00Z' },
+  ],
 });
 
-test('unmergedPullRequestPrintsItsFactsAndNoValues', async () => {
-  const pr = pullRequest({ mergedAt: null, comments: [{ actor: bob, at: '2026-01-05T10:00:00Z' }] });
+test('countsHumanCommentsIncludingTheAuthorsButNotBots', async () => {
+  const explanation = await explain(7, humanAndBotComments);
 
-  const explanation = await explain(7, pr);
+  expect(explanation.facts.comments).toBe(2);
+});
 
-  expect(explanation).toMatchObject({
-    number: 7,
-    merged: false,
-    values: null,
-    facts: { mergedAt: null, firstResponse: { kind: 'human', by: 'bob', at: '2026-01-05T10:00:00Z' }, comments: 1, reviewers: ['bob'] },
+test('listsHumanReviewersExcludingTheAuthorAndBots', async () => {
+  const explanation = await explain(7, humanAndBotComments);
+
+  expect(explanation.facts.reviewers).toEqual(['bob']);
+});
+
+const unmergedWithComment = pullRequest({ mergedAt: null, comments: [{ actor: bob, at: '2026-01-05T10:00:00Z' }] });
+
+test('unmergedPullRequestHasNoValues', async () => {
+  const explanation = await explain(7, unmergedWithComment);
+
+  expect(explanation.values).toBeNull();
+});
+
+test('unmergedPullRequestStillShowsItsFacts', async () => {
+  const explanation = await explain(7, unmergedWithComment);
+
+  expect(explanation.facts).toEqual({
+    readyForReviewAt: '2026-01-05T08:00:00Z',
+    firstResponse: { kind: 'human', by: 'bob', at: '2026-01-05T10:00:00Z' },
+    mergedAt: null,
+    comments: 1,
+    reviewers: ['bob'],
   });
 });
 
@@ -124,19 +136,6 @@ test('showsADeletedAccountAsTheFirstResponder', async () => {
 
   const explanation = await explain(7, pr);
 
-  expect(explanation.facts.firstResponse).toEqual({ kind: 'human', by: null, at: '2026-01-05T10:00:00Z' });
+  expect(explanation.facts.firstResponse).toEqual({ kind: 'human', by: '(deleted account)', at: '2026-01-05T10:00:00Z' });
 });
 
-test('unmergedPullRequestsAreNotCountedInRangeQueries', async () => {
-  const source = new InMemoryPullRequestSource();
-  source.set(repository, [pullRequest({ mergedAt: null })]);
-  const ports = { pullRequests: source, repositories: new InMemoryRepositoryFinder(repository) };
-
-  const result = await queryMetric(
-    ports,
-    { family: 'pr', metric: 'prsMerged', statistic: 'total', period: 'overall', since: '2026-01-01', until: '2026-01-31' },
-    new Date('2026-02-01T00:00:00Z'),
-  );
-
-  expect(result.rows[0]?.value).toBe(0);
-});

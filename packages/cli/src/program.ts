@@ -41,10 +41,10 @@ function parsePullRequestNumber(text: string): number {
   return Number(text);
 }
 
-function singleRepository(repos: string | undefined): string | undefined {
-  const paths = repos?.split(',').map((path) => path.trim()).filter((path) => path !== '');
-  if (paths && paths.length > 1) throw new UsageError(`explain works on exactly one repository, got ${paths.length}: ${paths.join(', ')}`);
-  return paths?.[0];
+function singleRepository(repos: string[] | undefined): string | undefined {
+  const paths = (repos ?? []).flatMap((value) => value.split(',')).map((path) => path.trim()).filter((path) => path !== '');
+  if (paths.length > 1) throw new UsageError(`explain works on exactly one repository, got ${paths.length}: ${paths.join(', ')}`);
+  return paths[0];
 }
 
 function addExplain(family: Command, run: RunExplain, io: CliIo): void {
@@ -53,7 +53,7 @@ function addExplain(family: Command, run: RunExplain, io: CliIo): void {
     .description('Print every metric value of one pull request with the facts behind it')
     .argument('<number>', 'pull request number')
     .option('--json', 'print JSON instead of text')
-    .option('--repos <paths>', 'the one repository to use, as a relative path')
+    .option('--repos <paths...>', 'the one repository to use, as a relative path')
     .action(async (number, options) => {
       const repository = singleRepository(options.repos);
       const request: ExplainRequest = { number: parsePullRequestNumber(number), ...(repository === undefined ? {} : { repository }) };
