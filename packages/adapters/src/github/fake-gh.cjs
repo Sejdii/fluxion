@@ -13,4 +13,5 @@ if (process.env.FAKE_GH_FAIL) {
   process.exit(1);
 }
 fs.appendFileSync(process.env.FAKE_GH_LOG, `${field('searchQuery')}|${field('cursor')}\n`);
-process.stdout.write(JSON.stringify(JSON.parse(process.env.FAKE_GH_PAGES)[field('cursor')]));
+const response = JSON.parse(process.env.FAKE_GH_PAGES)[field('cursor')];
+process.stdout.write(typeof response === 'string' ? response : JSON.stringify(response));

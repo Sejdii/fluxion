@@ -11,7 +11,9 @@ export function runGh(args: string[]): Promise<string> {
       if ('code' in error && error.code === 'ENOENT') {
         return reject(new DataError('The gh CLI was not found. Install it from https://cli.github.com and run `gh auth login`'));
       }
-      reject(new DataError(`gh failed: ${stderr.trim() || error.message}`));
+      const message = stderr.trim() || error.message;
+      const loggedOut = /gh auth login/.test(message);
+      reject(new DataError(loggedOut ? 'gh is not logged in. Run `gh auth login`' : `gh failed: ${message}`));
     });
   });
 }

@@ -55,10 +55,23 @@ function toActivity(node: SearchNode): PullRequestActivity {
   };
 }
 
+interface GraphqlResponse {
+  data?: { search: SearchPage };
+  errors?: { message: string }[];
+}
+
+function parseResponse(output: string): GraphqlResponse {
+  try {
+    return JSON.parse(output) as GraphqlResponse;
+  } catch {
+    throw new DataError('gh returned a response that is not valid JSON');
+  }
+}
+
 async function fetchPage(searchQuery: string, cursor: string | null): Promise<SearchPage> {
   const args = ['api', 'graphql', '-f', `query=${QUERY}`, '-f', `searchQuery=${searchQuery}`];
   if (cursor) args.push('-f', `cursor=${cursor}`);
-  const response = JSON.parse(await runGh(args)) as { data?: { search: SearchPage }; errors?: { message: string }[] };
+  const response = parseResponse(await runGh(args));
   if (!response.data) {
     throw new DataError(`GitHub returned errors: ${(response.errors ?? []).map((e) => e.message).join('; ')}`);
   }

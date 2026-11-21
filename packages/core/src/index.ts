@@ -11,5 +11,5 @@ export type {
 export { PERIODS } from './range.js';
 export { queryMetric } from './query-metric.js';
 export type { MetricPorts, MetricRequest, MetricResult, MetricRow } from './query-metric.js';
-export { listMetrics } from './registry.js';
+export { listFamilies, listMetrics, listMetricsOf } from './registry.js';
 export type { MetricSummary } from './registry.js';

@@ -105,12 +105,28 @@ test('graphqlErrorsAreADataError', async () => {
   await expect(result).rejects.toThrow('GitHub returned errors: Could not resolve to a Repository');
 });
 
-test('ghFailureIsADataErrorCarryingItsMessage', async () => {
+test('notLoggedInIsADataErrorWithALoginHint', async () => {
   process.env.FAKE_GH_FAIL = 'To get started with GitHub CLI, please run: gh auth login';
 
   const result = new GitHubPullRequestSource().mergedPullRequests(repository, range);
 
-  await expect(result).rejects.toThrow('gh failed: To get started with GitHub CLI, please run: gh auth login');
+  await expect(result).rejects.toThrow('gh is not logged in. Run `gh auth login`');
+});
+
+test('otherGhFailuresCarryTheirMessage', async () => {
+  process.env.FAKE_GH_FAIL = 'HTTP 502';
+
+  const result = new GitHubPullRequestSource().mergedPullRequests(repository, range);
+
+  await expect(result).rejects.toThrow('gh failed: HTTP 502');
+});
+
+test('responseThatIsNotJsonIsADataError', async () => {
+  serve({ '': '<html>oops</html>' });
+
+  const result = new GitHubPullRequestSource().mergedPullRequests(repository, range);
+
+  await expect(result).rejects.toThrow('gh returned a response that is not valid JSON');
 });
 
 test('missingGhIsADataError', async () => {

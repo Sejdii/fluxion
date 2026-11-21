@@ -59,12 +59,12 @@ test('prsMergedTotalMonthlyCountsMergedPrsPerMonthWithN', async () => {
   ]);
 });
 
-test('monthWithoutMergedPrsAppearsWithZeroNAndNoValue', async () => {
+test('monthWithoutMergedPrsAppearsWithZeroNAndZeroTotal', async () => {
   const ports = portsWith(mergedAt('2026-01-05T10:00:00Z'));
 
   const result = await queryMetric(ports, request(), now);
 
-  expect(result.rows[1]).toEqual({ period: '2026-02', n: 0, value: null });
+  expect(result.rows[1]).toEqual({ period: '2026-02', n: 0, value: 0 });
 });
 
 test('rowsCoverEveryMonthOfTheRange', async () => {
@@ -111,7 +111,7 @@ test('pullRequestMergedAfterTheUntilDateIsExcluded', async () => {
 
   const result = await queryMetric(ports, request(), now);
 
-  expect(result.rows[2]).toEqual({ period: '2026-03', n: 0, value: null });
+  expect(result.rows[2]).toEqual({ period: '2026-03', n: 0, value: 0 });
 });
 
 test('pullRequestsOfAnotherRepositoryAreNotCounted', async () => {
@@ -120,7 +120,7 @@ test('pullRequestsOfAnotherRepositoryAreNotCounted', async () => {
 
   const result = await queryMetric({ ...ports, repositories: new InMemoryRepositoryFinder(other) }, request(), now);
 
-  expect(result.rows[0]).toEqual({ period: '2026-01', n: 0, value: null });
+  expect(result.rows[0]).toEqual({ period: '2026-01', n: 0, value: 0 });
 });
 
 test('rangeDefaultsToTheLast90DaysEndingToday', async () => {

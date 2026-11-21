@@ -1,5 +1,5 @@
 import { Command, CommanderError } from '@commander-js/extra-typings';
-import { DataError, UsageError, listMetrics, type MetricRequest, type MetricResult } from '@fluxion/core';
+import { DataError, UsageError, listFamilies, listMetricsOf, type MetricRequest, type MetricResult } from '@fluxion/core';
 import { formatTable } from './format-table.js';
 
 export interface CliIo {
@@ -14,15 +14,12 @@ export const EXIT_USAGE = 1;
 export const EXIT_DATA = 2;
 
 function familyHelp(family: string): string {
-  const lines = listMetrics()
-    .filter((metric) => metric.family === family)
-    .map((metric) => `  ${metric.id.padEnd(14)} ${metric.description} (statistics: ${metric.statistics.join(', ')})`);
+  const lines = listMetricsOf(family).map((metric) => `  ${metric.id.padEnd(14)} ${metric.description} (statistics: ${metric.statistics.join(', ')})`);
   return `\nMetrics:\n${lines.join('\n')}\n`;
 }
 
 function allMetricsHelp(): string {
-  const families = [...new Set(listMetrics().map((metric) => metric.family))];
-  return families.map((family) => `\nFamily "${family}":${familyHelp(family)}`).join('');
+  return listFamilies().map((family) => `\nFamily "${family}":${familyHelp(family)}`).join('');
 }
 
 function addFamily(program: Command, family: string, run: RunMetric, io: CliIo): void {
@@ -47,8 +44,7 @@ function buildProgram(run: RunMetric, io: CliIo): Command {
     .configureOutput({ writeOut: io.stdout, writeErr: io.stderr })
     .exitOverride()
     .addHelpText('after', allMetricsHelp());
-  const families = [...new Set(listMetrics().map((metric) => metric.family))];
-  families.forEach((family) => addFamily(program, family, run, io));
+  listFamilies().forEach((family) => addFamily(program, family, run, io));
   return program;
 }
 
