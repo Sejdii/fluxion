@@ -23,6 +23,9 @@ function mergedAt(timestamp: string, number = 1): PullRequestActivity {
     mergedAt: timestamp,
     additions: 1,
     deletions: 1,
+    draftEvents: [],
+    comments: [],
+    reviews: [],
   };
 }
 
@@ -148,16 +151,16 @@ test('unknownMetricIsAUsageError', async () => {
 
   const result = queryMetric(ports, request({ metric: 'nope' }), now);
 
-  await expect(result).rejects.toThrow(new UsageError('Unknown metric "nope" for family "pr". Available: prsMerged'));
+  await expect(result).rejects.toThrow(new UsageError('Unknown metric "nope" for family "pr". Available: prsMerged, reviewWaitingTime, totalReviewTime'));
 });
 
 test('unsupportedStatisticIsAUsageError', async () => {
   const ports = portsWith();
 
-  const result = queryMetric(ports, request({ statistic: 'median' }), now);
+  const result = queryMetric(ports, request({ statistic: 'mean' }), now);
 
   await expect(result).rejects.toThrow(
-    new UsageError('Metric "prsMerged" does not support statistic "median". Allowed: total'),
+    new UsageError('Metric "prsMerged" does not support statistic "mean". Allowed: total'),
   );
 });
 
@@ -202,6 +205,18 @@ test('listMetricsDescribesRegisteredMetricsWithTheirStatistics', () => {
 
   expect(metrics).toEqual([
     { family: 'pr', id: 'prsMerged', description: 'Pull requests merged per period', statistics: ['total'] },
+    {
+      family: 'pr',
+      id: 'reviewWaitingTime',
+      description: 'Hours from ready for review to first response',
+      statistics: ['median', 'p90'],
+    },
+    {
+      family: 'pr',
+      id: 'totalReviewTime',
+      description: 'Hours from ready for review to merge',
+      statistics: ['median', 'p90'],
+    },
   ]);
 });
 

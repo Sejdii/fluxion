@@ -1,11 +1,15 @@
 import type { PullRequestActivity } from './pull-request-source.js';
+import { reviewWaitingHours, totalReviewHours } from './review-time.js';
+import { summarize } from './statistics.js';
 
 export interface MetricDefinition {
   id: string;
   family: string;
   description: string;
   statistics: readonly string[];
-  calculate(pullRequests: PullRequestActivity[]): number | null;
+  unit?: string;
+  perPullRequest: boolean;
+  calculate(pullRequests: PullRequestActivity[], statistic: string): number | null;
 }
 
 export interface MetricSummary {
@@ -21,7 +25,26 @@ const registry: readonly MetricDefinition[] = [
     family: 'pr',
     description: 'Pull requests merged per period',
     statistics: ['total'],
+    perPullRequest: false,
     calculate: (pullRequests) => pullRequests.length,
+  },
+  {
+    id: 'reviewWaitingTime',
+    family: 'pr',
+    description: 'Hours from ready for review to first response',
+    statistics: ['median', 'p90'],
+    unit: 'hours',
+    perPullRequest: true,
+    calculate: (pullRequests, statistic) => summarize(pullRequests.map(reviewWaitingHours), statistic),
+  },
+  {
+    id: 'totalReviewTime',
+    family: 'pr',
+    description: 'Hours from ready for review to merge',
+    statistics: ['median', 'p90'],
+    unit: 'hours',
+    perPullRequest: true,
+    calculate: (pullRequests, statistic) => summarize(pullRequests.map(totalReviewHours), statistic),
   },
 ];
 

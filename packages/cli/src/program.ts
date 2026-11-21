@@ -34,7 +34,7 @@ function addFamily(program: Command, family: string, run: RunMetric, io: CliIo):
     .addHelpText('after', familyHelp(family))
     .action(async (metric, statistic, period, options) => {
       const result = await run({ family, metric, statistic, period, since: options.since, until: options.until });
-      io.stdout(formatTable(metric, result.rows));
+      io.stdout(formatTable(metric, result.rows, result.unit));
     });
 }
 
