@@ -1,7 +1,8 @@
-import type { DateRange, PullRequestActivity, RepositoryRef } from '@fluxion/core';
+import type { Actor, DateRange, DraftEvent, PullRequestActivity, RepositoryRef, ReviewActivity } from '@fluxion/core';
 import type { GraphqlVariables } from './github-api.js';
 
 const PAGE_SIZE = 100;
+const NESTED_PAGE_SIZE = 100;
 
 export const GITHUB_SEARCH_RESULT_LIMIT = 1000;
 
@@ -18,10 +19,24 @@ query($searchQuery: String!, $cursor: String) {
         additions
         deletions
         author { login __typename }
+        timelineItems(first: ${NESTED_PAGE_SIZE}, itemTypes: [READY_FOR_REVIEW_EVENT, CONVERT_TO_DRAFT_EVENT]) {
+          nodes {
+            __typename
+            ... on ReadyForReviewEvent { createdAt }
+            ... on ConvertToDraftEvent { createdAt }
+          }
+        }
+        comments(first: ${NESTED_PAGE_SIZE}) { nodes { createdAt author { login __typename } } }
+        reviews(first: ${NESTED_PAGE_SIZE}) { nodes { submittedAt author { login __typename } } }
       }
     }
   }
 }`;
+
+interface ActorNode {
+  login: string;
+  __typename: string;
+}
 
 interface SearchNode {
   number: number;
@@ -29,7 +44,10 @@ interface SearchNode {
   mergedAt: string;
   additions: number;
   deletions: number;
-  author: { login: string; __typename: string } | null;
+  author: ActorNode | null;
+  timelineItems: { nodes: { __typename: string; createdAt: string }[] };
+  comments: { nodes: { createdAt: string; author: ActorNode | null }[] };
+  reviews: { nodes: { submittedAt: string | null; author: ActorNode | null }[] };
 }
 
 export interface MergedPullRequestsPage {
@@ -51,14 +69,29 @@ export function searchVariables(repository: RepositoryRef, range: DateRange, cur
   return cursor ? { searchQuery, cursor } : { searchQuery };
 }
 
+function toActor(author: ActorNode | null): Actor {
+  return author && { login: author.login, isBot: author.__typename === 'Bot' };
+}
+
+function toDraftEvent(node: { __typename: string; createdAt: string }): DraftEvent {
+  return { kind: node.__typename === 'ReadyForReviewEvent' ? 'ready_for_review' : 'converted_to_draft', at: node.createdAt };
+}
+
+function toReviews(nodes: SearchNode['reviews']['nodes']): ReviewActivity[] {
+  return nodes.flatMap((node) => (node.submittedAt ? [{ actor: toActor(node.author), at: node.submittedAt }] : []));
+}
+
 function toActivity(node: SearchNode): PullRequestActivity {
   return {
     number: node.number,
-    author: node.author && { login: node.author.login, isBot: node.author.__typename === 'Bot' },
+    author: toActor(node.author),
     createdAt: node.createdAt,
     mergedAt: node.mergedAt,
     additions: node.additions,
     deletions: node.deletions,
+    draftEvents: node.timelineItems.nodes.map(toDraftEvent),
+    comments: node.comments.nodes.map((comment) => ({ actor: toActor(comment.author), at: comment.createdAt })),
+    reviews: toReviews(node.reviews.nodes),
   };
 }
 

@@ -1,3 +1,4 @@
+import { isLowSample } from './low-sample.js';
 import { UsageError } from './errors.js';
 import type { PullRequestActivity, PullRequestSource, DateRange, RepositoryFinder } from './pull-request-source.js';
 import { PERIODS, monthLabelsOf, resolveRange } from './range.js';
@@ -21,6 +22,7 @@ export interface MetricRow {
   period: string;
   n: number;
   value: number | null;
+  lowSample?: true;
 }
 
 export interface MetricResult {
@@ -50,10 +52,15 @@ function checkPeriod(period: string): void {
   }
 }
 
-function monthRows(definition: MetricDefinition, range: DateRange, pullRequests: PullRequestActivity[]): MetricRow[] {
+function monthRows(
+  definition: MetricDefinition,
+  statistic: string,
+  range: DateRange,   pullRequests: PullRequestActivity[],
+): MetricRow[] {
   return monthLabelsOf(range).map((period) => {
     const inPeriod = pullRequests.filter((pr) => pr.mergedAt.startsWith(period));
-    return { period, n: inPeriod.length, value: definition.calculate(inPeriod) };
+    const row = { period, n: inPeriod.length, value: definition.calculate(inPeriod, statistic) };
+    return definition.perPullRequest && isLowSample(row.n) ? { ...row, lowSample: true } : row;
   });
 }
 
@@ -63,5 +70,5 @@ export async function queryMetric(ports: MetricPorts, request: MetricRequest, no
   const range = resolveRange(request.since, request.until, now);
   const repository = await ports.repositories.current();
   const pullRequests = await ports.pullRequests.mergedPullRequests(repository, range);
-  return { range, rows: monthRows(definition, range, pullRequests) };
+  return { range, rows: monthRows(definition, request.statistic, range, pullRequests) };
 }

@@ -9,13 +9,28 @@ export interface DateRange {
   until: string;
 }
 
+export type Actor = { login: string; isBot: boolean } | null;
+
+export interface DraftEvent {
+  kind: 'ready_for_review' | 'converted_to_draft';
+  at: string;
+}
+
+export interface ReviewActivity {
+  actor: Actor;
+  at: string;
+}
+
 export interface PullRequestActivity {
   number: number;
-  author: { login: string; isBot: boolean } | null;
+  author: Actor;
   createdAt: string;
   mergedAt: string;
   additions: number;
   deletions: number;
+  draftEvents: DraftEvent[];
+  comments: ReviewActivity[];
+  reviews: ReviewActivity[];
 }
 
 export interface PullRequestSource {

@@ -2,7 +2,7 @@
 
 Fluxion measures whether a software team is getting faster, by showing trends in how pull requests move through review. It reads merged pull requests from GitHub through the `gh` CLI. Terms are defined in [GLOSSARY.md](GLOSSARY.md).
 
-Status: early. One command works so far: `fluxion pr prsMerged total monthly`.
+Status: early. Three metrics work so far: `fluxion pr prsMerged total monthly`, and `fluxion pr reviewWaitingTime|totalReviewTime median|p90 monthly` (hours; periods with fewer than 5 merged PRs flag the median as `low n` and show no p90).
 
 ## Setup
 
