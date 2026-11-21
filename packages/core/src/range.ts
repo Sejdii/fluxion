@@ -2,7 +2,11 @@ import { UsageError } from './errors.js';
 import type { DateRange } from './pull-request-source.js';
 
 export const DEFAULT_RANGE_DAYS = 90;
-export const PERIODS = ['monthly'] as const;
+export const DAILY_RANGE_DAYS = 30;
+export const MONTHLY_RANGE_MONTHS = 12;
+export const YEARLY_RANGE_YEARS = 4;
+export const EARLIEST_DATE = '2008-01-01';
+export const PERIODS = ['daily', 'weekly', 'monthly', 'yearly', 'overall'] as const;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -18,23 +22,18 @@ function validDate(text: string): string {
   return text;
 }
 
-export function resolveRange(since: string | undefined, until: string | undefined, now: Date): DateRange {
-  const end = validDate(until ?? isoDate(now));
-  const start = validDate(since ?? isoDate(new Date(Date.parse(`${end}T00:00:00Z`) - (DEFAULT_RANGE_DAYS - 1) * DAY_MS)));
-  if (start > end) throw new UsageError(`--since ${start} is after --until ${end}`);
-  return { since: start, until: end };
+function defaultStart(period: string, end: string): string {
+  const last = new Date(`${end}T00:00:00Z`);
+  if (period === 'overall') return EARLIEST_DATE;
+  if (period === 'yearly') return isoDate(new Date(Date.UTC(last.getUTCFullYear() - (YEARLY_RANGE_YEARS - 1), 0, 1)));
+  if (period === 'monthly') return isoDate(new Date(Date.UTC(last.getUTCFullYear(), last.getUTCMonth() - (MONTHLY_RANGE_MONTHS - 1), 1)));
+  const days = period === 'daily' ? DAILY_RANGE_DAYS : DEFAULT_RANGE_DAYS;
+  return isoDate(new Date(last.getTime() - (days - 1) * DAY_MS));
 }
 
-export function monthLabelsOf(range: DateRange): string[] {
-  const months: string[] = [];
-  let year = Number(range.since.slice(0, 4));
-  let month = Number(range.since.slice(5, 7));
-  const last = range.until.slice(0, 7);
-  for (;;) {
-    const label = `${year}-${String(month).padStart(2, '0')}`;
-    months.push(label);
-    if (label === last) return months;
-    year += month === 12 ? 1 : 0;
-    month = month === 12 ? 1 : month + 1;
-  }
+export function resolveRange(period: string, since: string | undefined, until: string | undefined, now: Date): DateRange {
+  const end = validDate(until ?? isoDate(now));
+  const start = validDate(since ?? defaultStart(period, end));
+  if (start > end) throw new UsageError(`--since ${start} is after --until ${end}`);
+  return { since: start, until: end };
 }

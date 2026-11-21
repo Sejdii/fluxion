@@ -107,7 +107,7 @@ test('pullRequestMergedOnTheUntilDateIsIncluded', async () => {
 
   const result = await queryMetric(ports, request(), now);
 
-  expect(result.rows[2]).toEqual({ period: '2026-03', n: 1, value: 1 });
+  expect(result.rows[2]).toEqual({ period: '2026-03', n: 1, value: 1, inProgress: true });
 });
 
 test('pullRequestMergedAfterTheUntilDateIsExcluded', async () => {
@@ -115,7 +115,7 @@ test('pullRequestMergedAfterTheUntilDateIsExcluded', async () => {
 
   const result = await queryMetric(ports, request(), now);
 
-  expect(result.rows[2]).toEqual({ period: '2026-03', n: 0, value: 0 });
+  expect(result.rows[2]).toEqual({ period: '2026-03', n: 0, value: 0, inProgress: true });
 });
 
 test('pullRequestsOfAnotherRepositoryAreNotCounted', async () => {
@@ -125,18 +125,6 @@ test('pullRequestsOfAnotherRepositoryAreNotCounted', async () => {
   const result = await queryMetric({ ...ports, repositories: new InMemoryRepositoryFinder(other) }, request(), now);
 
   expect(result.rows[0]).toEqual({ period: '2026-01', n: 0, value: 0 });
-});
-
-test('rangeDefaultsToTheLast90DaysEndingToday', async () => {
-  const ports = portsWith();
-
-  const result = await queryMetric(
-    ports,
-    request({ since: undefined, until: undefined }),
-    now,
-  );
-
-  expect(result.range).toEqual({ since: '2025-12-21', until: '2026-03-20' });
 });
 
 test('onlySinceGiven_untilDefaultsToToday', async () => {
@@ -170,7 +158,7 @@ test('unsupportedPeriodIsAUsageError', async () => {
 
   const result = queryMetric(ports, request({ period: 'hourly' }), now);
 
-  await expect(result).rejects.toThrow(new UsageError('Unsupported period "hourly". Allowed: monthly'));
+  await expect(result).rejects.toThrow(new UsageError('Unsupported period "hourly". Allowed: daily, weekly, monthly, yearly, overall'));
 });
 
 test('malformedDateIsAUsageError', async () => {
