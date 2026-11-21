@@ -15,15 +15,15 @@ export default defineConfig(
   { ignores: ['**/dist/**', 'coverage/**', 'test-results/**', '.claude/**'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
-  { files: ['**/*.ts'], rules: limits },
+  { files: ['**/*.{ts,tsx}'], rules: limits },
   {
-    files: ['**/*.ts'],
+    files: ['**/*.{ts,tsx}'],
     languageOptions: { parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname } },
     rules: { '@typescript-eslint/no-deprecated': 'error' },
   },
   { files: ['**/*.cjs'], languageOptions: { globals: globals.node } },
   {
-    files: ['packages/web/**/*.ts'],
+    files: ['packages/web/**/*.{ts,tsx}'],
     rules: {
       '@typescript-eslint/consistent-type-imports': ['error', { fixStyle: 'inline-type-imports' }],
       '@typescript-eslint/no-import-type-side-effects': 'error',

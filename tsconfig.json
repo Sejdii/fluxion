@@ -5,6 +5,7 @@
     "moduleResolution": "NodeNext",
     "lib": ["ES2023", "DOM"],
     "strict": true,
+    "jsx": "react-jsx",
     "noUncheckedIndexedAccess": true,
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
