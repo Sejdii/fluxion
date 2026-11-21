@@ -32,9 +32,13 @@ export class InMemoryPullRequestSource implements PullRequestSource {
 }
 
 export class InMemoryRepositoryFinder implements RepositoryFinder {
-  constructor(private readonly repository: RepositoryRef) {}
+  private readonly repositories: RepositoryRef[];
 
-  current(): Promise<RepositoryRef> {
-    return Promise.resolve(this.repository);
+  constructor(...repositories: RepositoryRef[]) {
+    this.repositories = repositories;
+  }
+
+  find(): Promise<RepositoryRef[]> {
+    return Promise.resolve(this.repositories);
   }
 }

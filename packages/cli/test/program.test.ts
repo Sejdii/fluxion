@@ -1,12 +1,12 @@
 import { expect, test } from 'vitest';
-import { DataError, UsageError, type Explanation, type MetricRequest, type MetricResult } from '@fluxion/core';
-import { runCli, type ExplainRequest, type RunExplain, type RunMetric } from '../src/program.js';
+import { DataError, UsageError, type Explanation, type MetricResult } from '@fluxion/core';
+import { runCli, type CliMetricRequest, type ExplainRequest, type RunExplain, type RunMetric } from '../src/program.js';
 
 interface Outcome {
   code: number;
   stdout: string;
   stderr: string;
-  requests: MetricRequest[];
+  requests: CliMetricRequest[];
   explained: ExplainRequest[];
 }
 
@@ -247,7 +247,7 @@ test('explainWithSeveralRepositoriesDoesNotRunTheUseCase', async () => {
 test('explainWithOneRepositoryPassesItToTheUseCase', async () => {
   const outcome = await run(['pr', 'explain', '7', '--repos', 'api']);
 
-  expect(outcome.explained).toEqual([{ number: 7, repository: 'api' }]);
+  expect(outcome.explained).toEqual([{ number: 7, repos: ['api'] }]);
 });
 
 test('explainRejectsANumberThatIsNotAPositiveInteger', async () => {
@@ -276,4 +276,24 @@ test('explainNamesTheMergeAsTheFirstResponseWhenNobodyResponded', async () => {
   const outcome = await run(['pr', 'explain', '7'], undefined, () => Promise.resolve(merge));
 
   expect(outcome.stdout).toContain('first response     2026-01-05T18:00:00Z (the merge)');
+});
+
+test('passesCommaSeparatedAndRepeatedReposToTheMetricUseCase', async () => {
+  const outcome = await run(['pr', 'prsMerged', 'total', 'monthly', '--repos', 'api,web', '--repos', 'docs']);
+
+  expect(outcome.requests[0]?.repos).toEqual(['api', 'web', 'docs']);
+});
+
+test('omitsReposWhenTheFlagIsNotGiven', async () => {
+  const outcome = await run(['pr', 'prsMerged', 'total', 'monthly']);
+
+  expect(outcome.requests[0]).not.toHaveProperty('repos');
+});
+
+test('namesTheFailingRepositoryOnStderrWithExitCode2', async () => {
+  const outcome = await run(['pr', 'prsMerged', 'total', 'monthly', '--repos', 'api,web'], () =>
+    Promise.reject(new DataError('acme/web: rate limit exhausted')),
+  );
+
+  expect(outcome).toMatchObject({ code: 2, stdout: '', stderr: 'error: acme/web: rate limit exhausted\n' });
 });

@@ -219,7 +219,7 @@ test('dataErrorIsNotAUsageErrorSoExitCodesCanDiffer', () => {
 });
 
 test('usageMistakeIsReportedBeforeTheRepositoryIsLookedUp', async () => {
-  const ports = { ...portsWith(), repositories: { current: () => Promise.reject(new DataError('not a repository')) } };
+  const ports = { ...portsWith(), repositories: { find: () => Promise.reject(new DataError('not a repository')) } };
 
   const result = queryMetric(ports, request({ metric: 'nope' }), now);
 

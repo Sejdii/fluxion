@@ -1,16 +1,15 @@
-import { resolve } from 'node:path';
-import { GithubCliExecutor, GitHubPullRequestSource, resolveCurrentRepository } from '@fluxion/adapters';
+import { GithubCliExecutor, GitHubPullRequestSource, findRepositories } from '@fluxion/adapters';
 import { CachingPullRequestSource, InMemoryCache, explainPullRequest, queryMetric, type MetricPorts } from '@fluxion/core';
 import type { Runners } from './program.js';
 
 export function createRunners(directory: string, now: () => Date): Runners {
   const pullRequests = new CachingPullRequestSource(new GitHubPullRequestSource(new GithubCliExecutor()), new InMemoryCache());
-  const portsFor = (repositoryDirectory: string): MetricPorts => ({
+  const portsFor = (repos: string[] | undefined): MetricPorts => ({
     pullRequests,
-    repositories: { current: () => resolveCurrentRepository(repositoryDirectory) },
+    repositories: { find: () => findRepositories(directory, repos) },
   });
   return {
-    metric: (request) => queryMetric(portsFor(directory), request, now()),
-    explain: (request) => explainPullRequest(portsFor(resolve(directory, request.repository ?? '.')), { number: request.number }),
+    metric: ({ repos, ...request }) => queryMetric(portsFor(repos), request, now()),
+    explain: ({ repos, number }) => explainPullRequest(portsFor(repos), { number }),
   };
 }

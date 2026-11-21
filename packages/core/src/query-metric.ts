@@ -1,6 +1,6 @@
 import { isLowSample } from './low-sample.js';
-import { UsageError } from './errors.js';
-import type { PullRequestSource, DateRange, RepositoryFinder } from './pull-request-source.js';
+import { DataError, UsageError } from './errors.js';
+import { displayName, type PullRequestActivity, type PullRequestSource, type DateRange, type RepositoryFinder, type RepositoryRef } from './pull-request-source.js';
 import { bucketsOf, type PeriodBucket } from './periods.js';
 import { PERIODS, resolveRange } from './range.js';
 import { findMetric, listMetricsOf, type MetricDefinition } from './registry.js';
@@ -65,12 +65,26 @@ function rowsOf(definition: MetricDefinition, statistic: string, buckets: Period
   });
 }
 
+async function fetchNamed(source: PullRequestSource, repository: RepositoryRef, range: DateRange): Promise<PullRequestActivity[]> {
+  try {
+    return await source.mergedPullRequests(repository, range);
+  } catch (error) {
+    if (error instanceof DataError) throw new DataError(`${displayName(repository)}: ${error.message}`, { cause: error });
+    throw error;
+  }
+}
+
+async function pooledPullRequests(source: PullRequestSource, repositories: RepositoryRef[], range: DateRange): Promise<PullRequestActivity[]> {
+  const perRepository = await Promise.all(repositories.map((repository) => fetchNamed(source, repository, range)));
+  return perRepository.flat();
+}
+
 export async function queryMetric(ports: MetricPorts, request: MetricRequest, now: Date): Promise<MetricResult> {
   const definition = definitionFor(request);
   checkPeriod(request.period);
   const range = resolveRange(request.period, request.since, request.until, now);
-  const repository = await ports.repositories.current();
-  const pullRequests = await ports.pullRequests.mergedPullRequests(repository, range);
+  const repositories = await ports.repositories.find();
+  const pullRequests = await pooledPullRequests(ports.pullRequests, repositories, range);
   const rows = rowsOf(definition, request.statistic, bucketsOf(request.period, range, pullRequests, now));
   return definition.unit ? { range, unit: definition.unit, rows } : { range, rows };
 }

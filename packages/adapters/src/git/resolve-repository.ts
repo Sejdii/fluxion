@@ -19,11 +19,18 @@ async function remoteUrls(directory: string): Promise<string[]> {
   return output.split('\n').map((line) => line.split(/\s+/)[1] ?? '');
 }
 
+export function isInsideRepository(directory: string): Promise<boolean> {
+  return git(directory, ['rev-parse', '--is-inside-work-tree']).then(
+    () => true,
+    () => false,
+  );
+}
+
 export async function resolveCurrentRepository(directory: string): Promise<RepositoryRef> {
   const urls = await remoteUrls(directory).catch(() => {
     throw new DataError(`${directory} is not inside a git repository`);
   });
   const repository = urls.map(parseGitHubRemote).find((ref) => ref !== undefined);
-  if (!repository) throw new DataError('The git repository has no GitHub remote');
+  if (!repository) throw new DataError(`${directory} has no GitHub remote`);
   return repository;
 }

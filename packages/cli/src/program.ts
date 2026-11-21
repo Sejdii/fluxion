@@ -9,11 +9,15 @@ export interface CliIo {
   stderr(text: string): void;
 }
 
-export type RunMetric = (request: MetricRequest) => Promise<MetricResult>;
+export interface CliMetricRequest extends MetricRequest {
+  repos?: string[];
+}
+
+export type RunMetric = (request: CliMetricRequest) => Promise<MetricResult>;
 
 export interface ExplainRequest {
   number: number;
-  repository?: string;
+  repos?: string[];
 }
 
 export type RunExplain = (request: ExplainRequest) => Promise<Explanation>;
@@ -41,10 +45,19 @@ function parsePullRequestNumber(text: string): number {
   return Number(text);
 }
 
-function singleRepository(repos: string[] | undefined): string | undefined {
-  const paths = (repos ?? []).flatMap((value) => value.split(',')).map((path) => path.trim()).filter((path) => path !== '');
+function repositoryPaths(repos: string[] | undefined): string[] {
+  return (repos ?? []).flatMap((value) => value.split(',')).map((path) => path.trim()).filter((path) => path !== '');
+}
+
+function withRepos<T extends object>(request: T, repos: string[] | undefined): T & { repos?: string[] } {
+  const paths = repositoryPaths(repos);
+  return paths.length === 0 ? request : { ...request, repos: paths };
+}
+
+function singleRepository(repos: string[] | undefined): string[] | undefined {
+  const paths = repositoryPaths(repos);
   if (paths.length > 1) throw new UsageError(`explain works on exactly one repository, got ${paths.length}: ${paths.join(', ')}`);
-  return paths[0];
+  return paths;
 }
 
 function addExplain(family: Command, run: RunExplain, io: CliIo): void {
@@ -55,9 +68,8 @@ function addExplain(family: Command, run: RunExplain, io: CliIo): void {
     .option('--json', 'print JSON instead of text')
     .option('--repos <paths...>', 'the one repository to use, as a relative path')
     .action(async (number, options) => {
-      const repository = singleRepository(options.repos);
-      const request: ExplainRequest = { number: parsePullRequestNumber(number), ...(repository === undefined ? {} : { repository }) };
-      const explanation = await run(request);
+      const paths = singleRepository(options.repos);
+      const explanation = await run(withRepos({ number: parsePullRequestNumber(number) }, paths));
       io.stdout(options.json ? formatExplanationJson(explanation) : formatExplanation(explanation));
     });
 }
@@ -72,8 +84,10 @@ function addFamily(program: Command, family: string, runners: Runners, io: CliIo
     .option('--since <date>', 'first merge date, YYYY-MM-DD (default depends on the period)')
     .option('--json', 'print JSON instead of a table')
     .option('--until <date>', 'last merge date, YYYY-MM-DD (default: today)')
+    .option('--repos <paths...>', 'repositories to pool, as comma-separated relative paths (default: this repository, or all found below)')
     .action(async (metric, statistic, period, options) => {
-      const result = await runners.metric({ family, metric, statistic, period, since: options.since, until: options.until });
+      const request = { family, metric, statistic, period, since: options.since, until: options.until };
+      const result = await runners.metric(withRepos(request, options.repos));
       io.stdout(options.json ? formatJson({ metric, statistic, period }, result) : formatTable(metric, result.rows, result.unit));
     });
   if (family === 'pr') addExplain(command, runners.explain, io);

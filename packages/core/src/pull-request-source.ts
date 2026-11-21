@@ -51,6 +51,10 @@ export function repositoryKey(repository: RepositoryRef): string {
   return `${repository.host}:${repository.owner}/${repository.name}`;
 }
 
+export function displayName(repository: RepositoryRef): string {
+  return `${repository.owner}/${repository.name}`;
+}
+
 export interface RepositoryFinder {
-  current(): Promise<RepositoryRef>;
+  find(): Promise<RepositoryRef[]>;
 }

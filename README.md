@@ -55,8 +55,10 @@ Periods: `daily`, `weekly` (ISO weeks, starting Monday and labelled by that Mond
 - Default range, ending at `--until`: `daily` 30 days, `weekly` 90 days, `monthly` the last 12 months, `yearly` the last 4 years (both counting the current one), `overall` everything.
 - Pull requests are counted by UTC merge date. Both bounds are inclusive. Periods without merged PRs still appear, with `n` = 0 (and `-` instead of a value for median and p90).
 - The unfinished period is marked `(in progress)` in the table and `"inProgress": true` in JSON.
+- Repository selection: inside a git repository it is used; in a plain folder Fluxion scans downward for repositories (stopping at the first `.git`, skipping hidden folders and `node_modules`). `--repos a,b` (or a repeated flag) takes paths relative to the current folder instead.
+- Several repositories are pooled: their merged PRs are combined before statistics, so a median is over all PRs, not an average of per-repository medians. If one repository fails, the command fails (exit `2`) and names it on stderr.
 - `fluxion --help` and `fluxion pr --help` list the available metrics and statistics.
-- Results go to stdout and errors to stderr. Exit codes: `0` success, `1` usage mistake, `2` data problem (`gh` missing or not logged in, not a git repository, no GitHub remote).
+- Results go to stdout and errors to stderr. Exit codes: `0` success, `1` usage mistake, `2` data problem (`gh` missing or not logged in, no git repositories found, no GitHub remote).
 - GitHub search returns at most 1000 pull requests per query; for larger ranges narrow `--since` and `--until`.
 
 ### Review time metrics
@@ -117,7 +119,7 @@ values
 ```
 
 - `--json` prints the same facts and values as JSON.
-- `--repos <path>` picks the repository by relative path. It must name exactly one repository: several (`--repos a,b` or a repeated flag) are a usage error (exit `1`).
+- `--repos <path>` picks the repository by relative path. It must resolve to exactly one repository: several (`--repos a,b`, a repeated flag, or a folder that holds several repositories) are a usage error (exit `1`).
 - An unmerged pull request prints its facts and `not merged, no values`.
 - A pull request number that does not exist in the repository is a data error (exit `2`).
 
