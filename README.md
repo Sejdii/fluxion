@@ -2,7 +2,7 @@
 
 Fluxion measures whether a software team is getting faster, by showing trends in how pull requests move through review. It reads merged pull requests from GitHub through the `gh` CLI. Terms are defined in [GLOSSARY.md](GLOSSARY.md).
 
-Status: early. Six metrics work so far: `fluxion pr prsMerged total monthly`, `fluxion pr prSize|comments|reviewers median|p90 monthly`, and `fluxion pr reviewWaitingTime|totalReviewTime median|p90 monthly` (hours; periods with fewer than 5 merged PRs flag the median as `low n` and show no p90).
+Status: early. Six metrics work so far: `fluxion pr prsMerged total <period>`, `fluxion pr prSize|comments|reviewers median|p90 <period>`, and `fluxion pr reviewWaitingTime|totalReviewTime median|p90 <period>` (hours; periods with fewer than 5 merged PRs flag the median as `low n` and show no p90).
 
 ## Setup
 
@@ -44,12 +44,16 @@ period   prsMerged  n
 
 Grammar: `fluxion <family> <metric> <statistic> <period>`
 
+Periods: `daily`, `weekly` (ISO weeks, starting Monday and labelled by that Monday), `monthly`, `yearly` and `overall` (a single value over the whole range).
+
 | Option | Meaning |
 |--------|---------|
 | `--since <date>` | First merge date, `YYYY-MM-DD` (default: 90 days ago) |
 | `--until <date>` | Last merge date, `YYYY-MM-DD` (default: today) |
+| `--json` | Print JSON with the same rows as the table (never selected automatically, even when piped) |
 
-- Pull requests are counted by UTC merge date. Months without merged PRs still appear, with `n` = 0.
+- Pull requests are counted by UTC merge date. Both bounds are inclusive. Periods without merged PRs still appear, with `n` = 0 (and `-` instead of a value for median and p90).
+- The unfinished period is marked `(in progress)` in the table and `"inProgress": true` in JSON.
 - `fluxion --help` and `fluxion pr --help` list the available metrics and statistics.
 - Results go to stdout and errors to stderr. Exit codes: `0` success, `1` usage mistake, `2` data problem (`gh` missing or not logged in, not a git repository, no GitHub remote).
 - GitHub search returns at most 1000 pull requests per query; for larger ranges narrow `--since` and `--until`.
