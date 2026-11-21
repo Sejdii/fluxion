@@ -56,6 +56,6 @@ export default {
     tsPreCompilationDeps: true,
     tsConfig: { fileName: 'tsconfig.json' },
     exclude: { path: '(^|/)(dist|coverage|node_modules)/' },
-    enhancedResolveOptions: { exportsFields: ['exports'], conditionNames: ['import', 'require', 'node', 'default'], extensions: ['.ts', '.js'] },
+    enhancedResolveOptions: { exportsFields: ['exports'], conditionNames: ['import', 'require', 'node', 'default'], extensions: ['.ts', '.tsx', '.js'] },
   },
 };
