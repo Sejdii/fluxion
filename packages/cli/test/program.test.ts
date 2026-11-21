@@ -53,7 +53,7 @@ async function run(
     outcome.explained.push(request);
     return explainCase(request);
   };
-  outcome.code = await runCli(args, { metric: recording, explain: explaining }, {
+  outcome.code = await runCli(args, { metric: recording, explain: explaining, serve: () => Promise.resolve('') }, {
     stdout: (text) => (outcome.stdout += text),
     stderr: (text) => (outcome.stderr += text),
   });

@@ -49,7 +49,7 @@ function definitionFor(request: MetricRequest): MetricDefinition {
   return definition;
 }
 
-function checkPeriod(period: string): void {
+export function checkPeriod(period: string): void {
   if (!(PERIODS as readonly string[]).includes(period)) {
     throw new UsageError(`Unsupported period "${period}". Allowed: ${PERIODS.join(', ')}`);
   }
@@ -74,7 +74,7 @@ async function fetchNamed(source: PullRequestSource, repository: RepositoryRef, 
   }
 }
 
-async function pooledPullRequests(source: PullRequestSource, repositories: RepositoryRef[], range: DateRange): Promise<PullRequestActivity[]> {
+export async function pooledPullRequests(source: PullRequestSource, repositories: RepositoryRef[], range: DateRange): Promise<PullRequestActivity[]> {
   const perRepository = await Promise.all(repositories.map((repository) => fetchNamed(source, repository, range)));
   return perRepository.flat();
 }

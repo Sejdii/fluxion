@@ -22,11 +22,21 @@ export interface ExplainRequest {
 
 export type RunExplain = (request: ExplainRequest) => Promise<Explanation>;
 
+export interface ServeRequest {
+  port?: number;
+  open: boolean;
+  repos?: string[];
+}
+
+export type RunServe = (request: ServeRequest) => Promise<string>;
+
 export interface Runners {
   metric: RunMetric;
   explain: RunExplain;
+  serve: RunServe;
 }
 
+const MAX_PORT = 65535;
 export const EXIT_OK = 0;
 export const EXIT_USAGE = 1;
 export const EXIT_DATA = 2;
@@ -58,6 +68,24 @@ function singleRepository(repos: string[] | undefined): string[] | undefined {
   const paths = repositoryPaths(repos);
   if (paths.length > 1) throw new UsageError(`explain works on exactly one repository, got ${paths.length}: ${paths.join(', ')}`);
   return paths;
+}
+
+function parsePort(text: string): number {
+  const port = Number(text);
+  if (!/^\d+$/.test(text) || port > MAX_PORT) throw new UsageError(`Invalid port "${text}". Use a number from 0 to ${MAX_PORT}`);
+  return port;
+}
+
+function addDashboard(program: Command, run: RunServe, io: CliIo): void {
+  program
+    .option('--port <n>', 'port for the dashboard (default: any free port)')
+    .option('--no-open', 'do not open the browser')
+    .option('--repos <paths...>', 'repositories to show, as comma-separated relative paths (default: this repository, or all found below)')
+    .action(async (options) => {
+      const request = { open: options.open, ...(options.port === undefined ? {} : { port: parsePort(options.port) }) };
+      const url = await run(withRepos(request, options.repos));
+      io.stdout(`Fluxion dashboard: ${url}\n`);
+    });
 }
 
 function addExplain(family: Command, run: RunExplain, io: CliIo): void {
@@ -98,7 +126,9 @@ function buildProgram(runners: Runners, io: CliIo): Command {
     .description('Trends in how pull requests move through review')
     .configureOutput({ writeOut: io.stdout, writeErr: io.stderr })
     .exitOverride()
+    .enablePositionalOptions()
     .addHelpText('after', allMetricsHelp());
+  addDashboard(program, runners.serve, io);
   listFamilies().forEach((family) => addFamily(program, family, runners, io));
   return program;
 }

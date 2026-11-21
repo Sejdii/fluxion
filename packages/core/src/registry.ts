@@ -82,6 +82,10 @@ export function listMetricsOf(family: string): MetricSummary[] {
   return listMetrics().filter((metric) => metric.family === family);
 }
 
+export function definitionsOf(family: string): MetricDefinition[] {
+  return registry.filter((metric) => metric.family === family);
+}
+
 export function listFamilies(): string[] {
   return [...new Set(registry.map((metric) => metric.family))];
 }

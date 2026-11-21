@@ -37,3 +37,9 @@ export function resolveRange(period: string, since: string | undefined, until: s
   if (start > end) throw new UsageError(`--since ${start} is after --until ${end}`);
   return { since: start, until: end };
 }
+
+export function previousRangeOf(range: DateRange): DateRange {
+  const since = new Date(`${range.since}T00:00:00Z`).getTime();
+  const days = (new Date(`${range.until}T00:00:00Z`).getTime() - since) / DAY_MS + 1;
+  return { since: isoDate(new Date(since - days * DAY_MS)), until: isoDate(new Date(since - DAY_MS)) };
+}
