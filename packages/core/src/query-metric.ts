@@ -27,6 +27,7 @@ export interface MetricRow {
 
 export interface MetricResult {
   range: DateRange;
+  unit?: string;
   rows: MetricRow[];
 }
 
@@ -71,5 +72,6 @@ export async function queryMetric(ports: MetricPorts, request: MetricRequest, no
   const range = resolveRange(request.since, request.until, now);
   const repository = await ports.repositories.current();
   const pullRequests = await ports.pullRequests.mergedPullRequests(repository, range);
-  return { range, rows: monthRows(definition, request.statistic, range, pullRequests) };
+  const rows = monthRows(definition, request.statistic, range, pullRequests);
+  return definition.unit ? { range, unit: definition.unit, rows } : { range, rows };
 }

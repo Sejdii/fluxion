@@ -7,6 +7,7 @@ export interface MetricDefinition {
   family: string;
   description: string;
   statistics: readonly string[];
+  unit?: string;
   perPullRequest: boolean;
   calculate(pullRequests: PullRequestActivity[], statistic: string): number | null;
 }
@@ -32,6 +33,7 @@ const registry: readonly MetricDefinition[] = [
     family: 'pr',
     description: 'Hours from ready for review to first response',
     statistics: ['median', 'p90'],
+    unit: 'hours',
     perPullRequest: true,
     calculate: (pullRequests, statistic) => summarize(pullRequests.map(reviewWaitingHours), statistic),
   },
@@ -40,6 +42,7 @@ const registry: readonly MetricDefinition[] = [
     family: 'pr',
     description: 'Hours from ready for review to merge',
     statistics: ['median', 'p90'],
+    unit: 'hours',
     perPullRequest: true,
     calculate: (pullRequests, statistic) => summarize(pullRequests.map(totalReviewHours), statistic),
   },

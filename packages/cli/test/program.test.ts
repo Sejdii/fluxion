@@ -41,11 +41,11 @@ test('printsTheTableOnStdoutWithExitCode0', async () => {
 });
 
 test('flagsALowSampleMedianInTheTable', async () => {
-  const lowSample = { range: result.range, rows: [{ period: '2026-01', n: 3, value: 4.5, lowSample: true as const }] };
+  const lowSample = { range: result.range, unit: 'hours', rows: [{ period: '2026-01', n: 3, value: 4.5, lowSample: true as const }] };
 
   const outcome = await run(['pr', 'reviewWaitingTime', 'median', 'monthly'], () => Promise.resolve(lowSample));
 
-  expect(outcome.stdout).toBe('period   reviewWaitingTime  n\n2026-01  4.5 (low n)        3\n');
+  expect(outcome.stdout).toBe('period   reviewWaitingTime (hours)  n\n2026-01  4.5 (low n)                3\n');
 });
 
 test('passesTheGrammarAndRangeToTheUseCase', async () => {

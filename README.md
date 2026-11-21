@@ -54,6 +54,27 @@ Grammar: `fluxion <family> <metric> <statistic> <period>`
 - Results go to stdout and errors to stderr. Exit codes: `0` success, `1` usage mistake, `2` data problem (`gh` missing or not logged in, not a git repository, no GitHub remote).
 - GitHub search returns at most 1000 pull requests per query; for larger ranges narrow `--since` and `--until`.
 
+### Review time metrics
+
+`reviewWaitingTime` and `totalReviewTime` are measured in **hours** (shown in the column header, rounded to 2 decimals) and support `median` and `p90`:
+
+```bash
+fluxion pr reviewWaitingTime median monthly --since 2026-01-01
+```
+
+```text
+period   reviewWaitingTime (hours)  n
+2026-01  18.15                      7
+2026-06  0.22                       35
+2026-07  3.39 (low n)               4
+2026-10  -                          0
+```
+
+- The clock starts when the PR is ready for review (creation, or leaving draft); draft time is not counted.
+- Waiting time ends at the first comment or review by a human reviewer (not the author, not a bot). A PR with no such response uses its merge as the first response, so its waiting time is its total review time.
+- A period with fewer than 5 merged PRs is a low sample: the median is flagged `(low n)` and p90 shows `-`. `-` also means no merged PRs.
+- A value of `0` means a response came at the moment the PR became ready.
+
 ## Development
 
 ```bash
