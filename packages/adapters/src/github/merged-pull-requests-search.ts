@@ -1,8 +1,10 @@
-import type { Actor, DateRange, DraftEvent, PullRequestActivity, RepositoryRef, ReviewActivity } from '@fluxion/core';
+import type { Actor, DateRange, DraftEvent, PullRequestActivity, RepositoryRef, ReviewActivity, ReviewSubmission } from '@fluxion/core';
 import type { GraphqlVariables } from './github-api.js';
 
 const PAGE_SIZE = 100;
 const NESTED_PAGE_SIZE = 100;
+// Threads multiply: 100 PRs x 20 threads x 20 comments keeps the query far below GitHub's 500,000 node limit.
+const THREAD_PAGE_SIZE = 20;
 
 export const GITHUB_SEARCH_RESULT_LIMIT = 1000;
 
@@ -28,7 +30,10 @@ query($searchQuery: String!, $cursor: String) {
           }
         }
         comments(first: ${NESTED_PAGE_SIZE}) { nodes { createdAt author { login __typename } } }
-        reviews(first: ${NESTED_PAGE_SIZE}) { nodes { submittedAt author { login __typename } } }
+        reviews(first: ${NESTED_PAGE_SIZE}) { nodes { submittedAt body author { login __typename } } }
+        reviewThreads(first: ${THREAD_PAGE_SIZE}) {
+          nodes { comments(first: ${NESTED_PAGE_SIZE}) { nodes { createdAt author { login __typename } } } }
+        }
       }
     }
   }
@@ -48,7 +53,8 @@ interface SearchNode {
   author: ActorNode | null;
   timelineItems: { nodes: { __typename: string; createdAt: string }[] };
   comments: { nodes: { createdAt: string; author: ActorNode | null }[] };
-  reviews: { nodes: { submittedAt: string | null; author: ActorNode | null }[] };
+  reviews: { nodes: { submittedAt: string | null; body: string; author: ActorNode | null }[] };
+  reviewThreads: { nodes: { comments: { nodes: { createdAt: string; author: ActorNode | null }[] } }[] };
 }
 
 export interface RateLimit {
@@ -86,8 +92,14 @@ function toDraftEvent(node: { __typename: string; createdAt: string }): DraftEve
   return { kind: node.__typename === 'ReadyForReviewEvent' ? 'ready_for_review' : 'converted_to_draft', at: node.createdAt };
 }
 
-function toReviews(nodes: SearchNode['reviews']['nodes']): ReviewActivity[] {
-  return nodes.flatMap((node) => (node.submittedAt ? [{ actor: toActor(node.author), at: node.submittedAt }] : []));
+function toReviews(nodes: SearchNode['reviews']['nodes']): ReviewSubmission[] {
+  return nodes.flatMap((node) =>
+    node.submittedAt ? [{ actor: toActor(node.author), at: node.submittedAt, hasBody: node.body.trim() !== '' }] : [],
+  );
+}
+
+function toReviewComments(threads: SearchNode['reviewThreads']['nodes']): ReviewActivity[] {
+  return threads.flatMap((thread) => thread.comments.nodes.map((comment) => ({ actor: toActor(comment.author), at: comment.createdAt })));
 }
 
 function toActivity(node: SearchNode): PullRequestActivity {
@@ -100,6 +112,7 @@ function toActivity(node: SearchNode): PullRequestActivity {
     deletions: node.deletions,
     draftEvents: node.timelineItems.nodes.map(toDraftEvent),
     comments: node.comments.nodes.map((comment) => ({ actor: toActor(comment.author), at: comment.createdAt })),
+    reviewComments: toReviewComments(node.reviewThreads.nodes),
     reviews: toReviews(node.reviews.nodes),
   };
 }

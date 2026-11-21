@@ -1,4 +1,5 @@
-import type { PullRequestActivity, ReviewActivity } from './pull-request-source.js';
+import { isHumanReviewer } from './human-reviewer.js';
+import type { PullRequestActivity } from './pull-request-source.js';
 
 const MS_PER_HOUR = 60 * 60 * 1000;
 
@@ -7,16 +8,11 @@ function readyForReviewAt(pullRequest: PullRequestActivity): string {
   return firstDraftEvent?.kind === 'ready_for_review' ? firstDraftEvent.at : pullRequest.createdAt;
 }
 
-function isHumanReviewer(pullRequest: PullRequestActivity, activity: ReviewActivity): boolean {
-  if (activity.actor === null) return true;
-  return !activity.actor.isBot && activity.actor.login !== pullRequest.author?.login;
-}
-
 function firstResponseTime(pullRequest: PullRequestActivity): number {
   const ready = Date.parse(readyForReviewAt(pullRequest));
   const merged = Date.parse(pullRequest.mergedAt);
   const responseTimes = [...pullRequest.comments, ...pullRequest.reviews]
-    .filter((activity) => isHumanReviewer(pullRequest, activity))
+    .filter((activity) => isHumanReviewer(pullRequest, activity.actor))
     .map((activity) => Date.parse(activity.at))
     .filter((time) => time >= ready && time < merged);
   return Math.min(merged, ...responseTimes);

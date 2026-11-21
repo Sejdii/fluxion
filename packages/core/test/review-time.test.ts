@@ -23,6 +23,7 @@ function pullRequest(overrides: Partial<PullRequestActivity> = {}): PullRequestA
     deletions: 1,
     draftEvents: [],
     comments: [],
+    reviewComments: [],
     reviews: [],
     ...overrides,
   };
@@ -53,7 +54,7 @@ test('waitingTimeRunsFromCreationToFirstHumanComment', async () => {
 });
 
 test('waitingTimeEndsAtFirstHumanReview', async () => {
-  const pr = pullRequest({ reviews: [{ actor: reviewer, at: '2026-01-05T09:00:00Z' }] });
+  const pr = pullRequest({ reviews: [{ actor: reviewer, at: '2026-01-05T09:00:00Z', hasBody: false }] });
 
   const row = await waiting('median', pr);
 
@@ -63,7 +64,7 @@ test('waitingTimeEndsAtFirstHumanReview', async () => {
 test('earliestOfCommentsAndReviewsEndsTheWait', async () => {
   const pr = pullRequest({
     comments: [{ actor: reviewer, at: '2026-01-05T12:00:00Z' }],
-    reviews: [{ actor: reviewer, at: '2026-01-05T09:00:00Z' }],
+    reviews: [{ actor: reviewer, at: '2026-01-05T09:00:00Z', hasBody: false }],
   });
 
   const row = await waiting('median', pr);
@@ -89,7 +90,7 @@ test('botActivityNeverCountsAsAResponse', async () => {
 test('authorActivityNeverCountsAsAResponse', async () => {
   const pr = pullRequest({
     comments: [{ actor: author, at: '2026-01-05T09:00:00Z' }],
-    reviews: [{ actor: author, at: '2026-01-05T09:30:00Z' }],
+    reviews: [{ actor: author, at: '2026-01-05T09:30:00Z', hasBody: false }],
   });
 
   const row = await waiting('median', pr);

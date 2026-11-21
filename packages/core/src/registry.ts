@@ -1,4 +1,5 @@
 import type { PullRequestActivity } from './pull-request-source.js';
+import { commentCount, prSize, reviewerCount } from './discussion.js';
 import { reviewWaitingHours, totalReviewHours } from './review-time.js';
 import { summarize } from './statistics.js';
 
@@ -45,6 +46,31 @@ const registry: readonly MetricDefinition[] = [
     unit: 'hours',
     perPullRequest: true,
     calculate: (pullRequests, statistic) => summarize(pullRequests.map(totalReviewHours), statistic),
+  },
+  {
+    id: 'prSize',
+    family: 'pr',
+    description: 'Lines added plus lines deleted',
+    statistics: ['median', 'p90'],
+    unit: 'lines',
+    perPullRequest: true,
+    calculate: (pullRequests, statistic) => summarize(pullRequests.map(prSize), statistic),
+  },
+  {
+    id: 'comments',
+    family: 'pr',
+    description: 'Human comments per pull request',
+    statistics: ['median', 'p90'],
+    perPullRequest: true,
+    calculate: (pullRequests, statistic) => summarize(pullRequests.map(commentCount), statistic),
+  },
+  {
+    id: 'reviewers',
+    family: 'pr',
+    description: 'Distinct human reviewers per pull request',
+    statistics: ['median', 'p90'],
+    perPullRequest: true,
+    calculate: (pullRequests, statistic) => summarize(pullRequests.map(reviewerCount), statistic),
   },
 ];
 
