@@ -1,5 +1,6 @@
 import { Command, CommanderError } from '@commander-js/extra-typings';
 import { DataError, UsageError, listFamilies, listMetricsOf, type MetricRequest, type MetricResult } from '@fluxion/core';
+import { formatJson } from './format-json.js';
 import { formatTable } from './format-table.js';
 
 export interface CliIo {
@@ -28,13 +29,14 @@ function addFamily(program: Command, family: string, run: RunMetric, io: CliIo):
     .description(`Metrics of the "${family}" family`)
     .argument('<metric>', 'metric id')
     .argument('<statistic>', 'statistic to compute')
-    .argument('<period>', 'period to group by')
+    .argument('<period>', 'daily, weekly, monthly, yearly or overall (a single value)')
     .option('--since <date>', 'first merge date, YYYY-MM-DD (default: 90 days ago)')
+    .option('--json', 'print JSON instead of a table')
     .option('--until <date>', 'last merge date, YYYY-MM-DD (default: today)')
     .addHelpText('after', familyHelp(family))
     .action(async (metric, statistic, period, options) => {
       const result = await run({ family, metric, statistic, period, since: options.since, until: options.until });
-      io.stdout(formatTable(metric, result.rows, result.unit));
+      io.stdout(options.json ? formatJson({ metric, statistic, period }, result) : formatTable(metric, result.rows, result.unit));
     });
 }
 

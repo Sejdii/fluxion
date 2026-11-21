@@ -97,3 +97,37 @@ test('unexpectedErrorsAreNotSwallowed', async () => {
 
   await expect(outcome).rejects.toThrow('bug');
 });
+
+test('jsonFlagPrintsTheSameRowsAsJsonOnStdout', async () => {
+  const outcome = await run(['pr', 'prsMerged', 'total', 'monthly', '--json']);
+
+  expect(JSON.parse(outcome.stdout)).toEqual({
+    metric: 'prsMerged',
+    statistic: 'total',
+    period: 'monthly',
+    range: result.range,
+    rows: result.rows,
+  });
+});
+
+test('jsonIncludesTheUnitAndFlagsOfRows', async () => {
+  const flagged = { range: result.range, unit: 'hours', rows: [{ period: '2026-03', n: 3, value: 4.5, lowSample: true as const, inProgress: true as const }] };
+
+  const outcome = await run(['pr', 'reviewWaitingTime', 'median', 'monthly', '--json'], () => Promise.resolve(flagged));
+
+  expect(JSON.parse(outcome.stdout)).toMatchObject({ unit: 'hours', rows: flagged.rows });
+});
+
+test('outputIsATableUnlessJsonIsRequested', async () => {
+  const outcome = await run(['pr', 'prsMerged', 'total', 'monthly']);
+
+  expect(outcome.stdout).toBe('period   prsMerged  n\n2026-01  12         12\n2026-02  -          0\n');
+});
+
+test('marksTheUnfinishedPeriodInTheTable', async () => {
+  const unfinished = { range: result.range, rows: [{ period: '2026-03', n: 2, value: 2, inProgress: true as const }] };
+
+  const outcome = await run(['pr', 'prsMerged', 'total', 'monthly'], () => Promise.resolve(unfinished));
+
+  expect(outcome.stdout).toBe('period                 prsMerged  n\n2026-03 (in progress)  2          2\n');
+});
