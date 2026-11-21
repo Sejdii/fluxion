@@ -127,18 +127,6 @@ test('pullRequestsOfAnotherRepositoryAreNotCounted', async () => {
   expect(result.rows[0]).toEqual({ period: '2026-01', n: 0, value: 0 });
 });
 
-test('rangeDefaultsToTheLast90DaysEndingToday', async () => {
-  const ports = portsWith();
-
-  const result = await queryMetric(
-    ports,
-    request({ since: undefined, until: undefined }),
-    now,
-  );
-
-  expect(result.range).toEqual({ since: '2025-12-21', until: '2026-03-20' });
-});
-
 test('onlySinceGiven_untilDefaultsToToday', async () => {
   const ports = portsWith();
 

@@ -48,10 +48,11 @@ Periods: `daily`, `weekly` (ISO weeks, starting Monday and labelled by that Mond
 
 | Option | Meaning |
 |--------|---------|
-| `--since <date>` | First merge date, `YYYY-MM-DD` (default: 90 days ago) |
+| `--since <date>` | First merge date, `YYYY-MM-DD` (default depends on the period, see below) |
 | `--until <date>` | Last merge date, `YYYY-MM-DD` (default: today) |
 | `--json` | Print JSON with the same rows as the table (never selected automatically, even when piped) |
 
+- Default range, ending at `--until`: `daily` 30 days, `weekly` 90 days, `monthly` the last 12 months, `yearly` the last 4 years (both counting the current one), `overall` everything.
 - Pull requests are counted by UTC merge date. Both bounds are inclusive. Periods without merged PRs still appear, with `n` = 0 (and `-` instead of a value for median and p90).
 - The unfinished period is marked `(in progress)` in the table and `"inProgress": true` in JSON.
 - `fluxion --help` and `fluxion pr --help` list the available metrics and statistics.

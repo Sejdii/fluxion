@@ -68,7 +68,7 @@ function rowsOf(definition: MetricDefinition, statistic: string, buckets: Period
 export async function queryMetric(ports: MetricPorts, request: MetricRequest, now: Date): Promise<MetricResult> {
   const definition = definitionFor(request);
   checkPeriod(request.period);
-  const range = resolveRange(request.since, request.until, now);
+  const range = resolveRange(request.period, request.since, request.until, now);
   const repository = await ports.repositories.current();
   const pullRequests = await ports.pullRequests.mergedPullRequests(repository, range);
   const rows = rowsOf(definition, request.statistic, bucketsOf(request.period, range, pullRequests, now));

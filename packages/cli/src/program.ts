@@ -30,7 +30,7 @@ function addFamily(program: Command, family: string, run: RunMetric, io: CliIo):
     .argument('<metric>', 'metric id')
     .argument('<statistic>', 'statistic to compute')
     .argument('<period>', 'daily, weekly, monthly, yearly or overall (a single value)')
-    .option('--since <date>', 'first merge date, YYYY-MM-DD (default: 90 days ago)')
+    .option('--since <date>', 'first merge date, YYYY-MM-DD (default depends on the period)')
     .option('--json', 'print JSON instead of a table')
     .option('--until <date>', 'last merge date, YYYY-MM-DD (default: today)')
     .addHelpText('after', familyHelp(family))
