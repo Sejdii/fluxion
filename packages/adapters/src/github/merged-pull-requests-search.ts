@@ -8,6 +8,7 @@ export const GITHUB_SEARCH_RESULT_LIMIT = 1000;
 
 export const MERGED_PULL_REQUESTS_DOCUMENT = `
 query($searchQuery: String!, $cursor: String) {
+  rateLimit { cost remaining resetAt }
   search(query: $searchQuery, type: ISSUE, first: ${PAGE_SIZE}, after: $cursor) {
     issueCount
     pageInfo { hasNextPage endCursor }
@@ -50,13 +51,21 @@ interface SearchNode {
   reviews: { nodes: { submittedAt: string | null; author: ActorNode | null }[] };
 }
 
+export interface RateLimit {
+  cost: number;
+  remaining: number;
+  resetAt: string;
+}
+
 export interface MergedPullRequestsPage {
+  rateLimit: RateLimit;
   issueCount: number;
   nextCursor: string | null;
   pullRequests: PullRequestActivity[];
 }
 
 interface SearchData {
+  rateLimit: RateLimit;
   search: {
     issueCount: number;
     pageInfo: { hasNextPage: boolean; endCursor: string | null };
@@ -95,9 +104,11 @@ function toActivity(node: SearchNode): PullRequestActivity {
   };
 }
 
-export function toPage(data: unknown): MergedPullRequestsPage {
-  const { search } = data as SearchData;
+export function toPage(raw: unknown): MergedPullRequestsPage {
+  const data = raw as SearchData;
+  const { search } = data;
   return {
+    rateLimit: data.rateLimit,
     issueCount: search.issueCount,
     nextCursor: search.pageInfo.hasNextPage ? search.pageInfo.endCursor : null,
     pullRequests: search.nodes.map(toActivity),
