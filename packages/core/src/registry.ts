@@ -7,7 +7,7 @@ export interface MetricDefinition {
   id: string;
   family: string;
   description: string;
-  statistics: readonly string[];
+  statistics: readonly [string, ...string[]];
   unit?: string;
   perPullRequest: boolean;
   calculate(pullRequests: PullRequestActivity[], statistic: string): number | null;
@@ -88,4 +88,19 @@ export function listFamilies(): string[] {
 
 export function findMetric(family: string, id: string): MetricDefinition | undefined {
   return registry.find((metric) => metric.family === family && metric.id === id);
+}
+
+export interface MetricValue {
+  metric: string;
+  unit?: string;
+  value: number | null;
+}
+
+export function valuesOfPullRequest(family: string, pullRequest: PullRequestActivity): MetricValue[] {
+  return registry
+    .filter((definition) => definition.family === family)
+    .map((definition) => {
+      const value = definition.calculate([pullRequest], definition.statistics[0]);
+      return definition.unit ? { metric: definition.id, unit: definition.unit, value } : { metric: definition.id, value };
+    });
 }

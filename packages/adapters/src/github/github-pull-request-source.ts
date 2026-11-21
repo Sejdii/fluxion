@@ -1,6 +1,7 @@
 import {
   DataError,
   type DateRange,
+  type FetchedPullRequest,
   type PullRequestActivity,
   type PullRequestSource,
   type RepositoryRef,
@@ -9,6 +10,9 @@ import type { GithubApi } from './github-api.js';
 import {
   GITHUB_SEARCH_RESULT_LIMIT,
   MERGED_PULL_REQUESTS_DOCUMENT,
+  PULL_REQUEST_DOCUMENT,
+  pullRequestVariables,
+  toPullRequest,
   searchVariables,
   toPage,
   type RateLimit,
@@ -42,6 +46,11 @@ export class GitHubPullRequestSource implements PullRequestSource {
       if (cursor && page.rateLimit.remaining < page.rateLimit.cost) throw rateLimitExhausted(page.rateLimit);
     } while (cursor);
     return found;
+  }
+
+  async pullRequest(repository: RepositoryRef, number: number): Promise<FetchedPullRequest | null> {
+    const data = await this.api.executeApi(PULL_REQUEST_DOCUMENT, pullRequestVariables(repository, number));
+    return toPullRequest(data);
   }
 
   private async fetchPage(repository: RepositoryRef, range: DateRange, cursor: string | null): Promise<MergedPullRequestsPage> {

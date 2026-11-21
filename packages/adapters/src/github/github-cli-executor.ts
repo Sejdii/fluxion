@@ -32,7 +32,7 @@ function parseResponse(output: string): GraphqlResponse {
 }
 
 function toArguments(document: string, variables: GraphqlVariables): string[] {
-  const fields = Object.entries(variables).flatMap(([name, value]) => ['-f', `${name}=${value}`]);
+  const fields = Object.entries(variables).flatMap(([name, value]) => [typeof value === 'number' ? '-F' : '-f', `${name}=${value}`]);
   return ['api', 'graphql', '-f', `query=${document}`, ...fields];
 }
 

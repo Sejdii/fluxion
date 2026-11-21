@@ -5,6 +5,7 @@ import {
   InMemoryCache,
   InMemoryPullRequestSource,
   type DateRange,
+  type FetchedPullRequest,
   type PullRequestActivity,
   type PullRequestSource,
   type RepositoryRef,
@@ -46,6 +47,10 @@ class CountingSource implements PullRequestSource {
       throw new DataError('rate limit');
     }
     return this.inner.mergedPullRequests(repo, requested);
+  }
+
+  pullRequest(repo: RepositoryRef, number: number): Promise<FetchedPullRequest | null> {
+    return this.inner.pullRequest(repo, number);
   }
 
   open(): void {
@@ -123,4 +128,12 @@ test('shouldRefetchAfterClear', async () => {
   await caching.mergedPullRequests(repository, range);
 
   expect(source.calls).toBe(2);
+});
+
+test('shouldFetchASinglePullRequestFromTheSource', async () => {
+  const source = new CountingSource();
+
+  const fetched = await decorate(source).pullRequest(repository, 1);
+
+  expect(fetched?.number).toBe(1);
 });

@@ -2,6 +2,7 @@ import type { Cache } from './cache.js';
 import {
   repositoryKey,
   type DateRange,
+  type FetchedPullRequest,
   type PullRequestActivity,
   type PullRequestSource,
   type RepositoryRef,
@@ -26,6 +27,10 @@ export class CachingPullRequestSource implements PullRequestSource {
     const pending = this.inFlight.get(key) ?? this.fetchAndStore(key, repository, range);
     this.inFlight.set(key, pending);
     return pending;
+  }
+
+  pullRequest(repository: RepositoryRef, number: number): Promise<FetchedPullRequest | null> {
+    return this.source.pullRequest(repository, number);
   }
 
   clear(): Promise<void> {

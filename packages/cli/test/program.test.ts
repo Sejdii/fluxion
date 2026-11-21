@@ -1,12 +1,13 @@
 import { expect, test } from 'vitest';
-import { DataError, UsageError, type MetricRequest, type MetricResult } from '@fluxion/core';
-import { runCli, type RunMetric } from '../src/program.js';
+import { DataError, UsageError, type Explanation, type MetricRequest, type MetricResult } from '@fluxion/core';
+import { runCli, type ExplainRequest, type RunExplain, type RunMetric } from '../src/program.js';
 
 interface Outcome {
   code: number;
   stdout: string;
   stderr: string;
   requests: MetricRequest[];
+  explained: ExplainRequest[];
 }
 
 const result: MetricResult = {
@@ -17,13 +18,44 @@ const result: MetricResult = {
   ],
 };
 
-async function run(args: string[], useCase: RunMetric = () => Promise.resolve(result)): Promise<Outcome> {
-  const outcome: Outcome = { code: -1, stdout: '', stderr: '', requests: [] };
+const mergedExplanation: Explanation = {
+  number: 7,
+  merged: true,
+  facts: {
+    readyForReviewAt: '2026-01-05T08:00:00Z',
+    firstResponse: { kind: 'human', by: 'bob', at: '2026-01-05T10:00:00Z' },
+    mergedAt: '2026-01-05T18:00:00Z',
+    comments: 3,
+    reviewers: ['bob', 'cy'],
+  },
+  values: [
+    { metric: 'reviewWaitingTime', unit: 'hours', value: 2 },
+    { metric: 'comments', value: 3 },
+  ],
+};
+
+const unmergedExplanation: Explanation = {
+  number: 8,
+  merged: false,
+  facts: { readyForReviewAt: '2026-01-05T08:00:00Z', firstResponse: null, mergedAt: null, comments: 0, reviewers: [] },
+  values: null,
+};
+
+async function run(
+  args: string[],
+  useCase: RunMetric = () => Promise.resolve(result),
+  explainCase: RunExplain = () => Promise.resolve(mergedExplanation),
+): Promise<Outcome> {
+  const outcome: Outcome = { code: -1, stdout: '', stderr: '', requests: [], explained: [] };
   const recording: RunMetric = (request) => {
     outcome.requests.push(request);
     return useCase(request);
   };
-  outcome.code = await runCli(args, recording, {
+  const explaining: RunExplain = (request) => {
+    outcome.explained.push(request);
+    return explainCase(request);
+  };
+  outcome.code = await runCli(args, { metric: recording, explain: explaining }, {
     stdout: (text) => (outcome.stdout += text),
     stderr: (text) => (outcome.stderr += text),
   });
@@ -130,4 +162,100 @@ test('marksTheUnfinishedPeriodInTheTable', async () => {
   const outcome = await run(['pr', 'prsMerged', 'total', 'monthly'], () => Promise.resolve(unfinished));
 
   expect(outcome.stdout).toBe('period                 prsMerged  n\n2026-03 (in progress)  2          2\n');
+});
+
+test('explainPrintsTheFactsAndValuesOfAMergedPullRequest', async () => {
+  const outcome = await run(['pr', 'explain', '7']);
+
+  expect(outcome).toMatchObject({
+    code: 0,
+    stderr: '',
+    explained: [{ number: 7 }],
+    stdout: [
+      'pull request #7 (merged)',
+      '',
+      'facts',
+      '  ready for review   2026-01-05T08:00:00Z',
+      '  first response     2026-01-05T10:00:00Z by bob',
+      '  merged             2026-01-05T18:00:00Z',
+      '  comments counted   3',
+      '  reviewers counted  2 (bob, cy)',
+      '',
+      'values',
+      '  reviewWaitingTime  2 hours',
+      '  comments           3',
+      '',
+    ].join('\n'),
+  });
+});
+
+test('explainPrintsNotMergedNoValuesForAnUnmergedPullRequest', async () => {
+  const outcome = await run(['pr', 'explain', '8'], undefined, () => Promise.resolve(unmergedExplanation));
+
+  expect(outcome.stdout).toBe(
+    [
+      'pull request #8 (not merged)',
+      '',
+      'facts',
+      '  ready for review   2026-01-05T08:00:00Z',
+      '  first response     none yet',
+      '  merged             not merged',
+      '  comments counted   0',
+      '  reviewers counted  0',
+      '',
+      'not merged, no values',
+      '',
+    ].join('\n'),
+  );
+});
+
+test('explainWithJsonPrintsTheExplanation', async () => {
+  const outcome = await run(['pr', 'explain', '7', '--json']);
+
+  expect(JSON.parse(outcome.stdout)).toEqual(mergedExplanation);
+});
+
+test('explainWithSeveralRepositoriesIsAUsageError', async () => {
+  const outcome = await run(['pr', 'explain', '7', '--repos', 'api,web']);
+
+  expect(outcome).toMatchObject({
+    code: 1,
+    stdout: '',
+    explained: [],
+    stderr: 'error: explain works on exactly one repository, got 2: api, web\n',
+  });
+});
+
+test('explainWithOneRepositoryPassesItToTheUseCase', async () => {
+  const outcome = await run(['pr', 'explain', '7', '--repos', 'api']);
+
+  expect(outcome.explained).toEqual([{ number: 7, repository: 'api' }]);
+});
+
+test('explainRejectsANumberThatIsNotAPositiveInteger', async () => {
+  const outcome = await run(['pr', 'explain', 'abc']);
+
+  expect(outcome).toMatchObject({ code: 1, stdout: '', stderr: 'error: Invalid pull request number "abc"\n' });
+});
+
+test('explainDataErrorExitsWith2', async () => {
+  const outcome = await run(['pr', 'explain', '7'], undefined, () => Promise.reject(new DataError('Pull request #7 was not found in acme/app')));
+
+  expect(outcome).toMatchObject({ code: 2, stderr: 'error: Pull request #7 was not found in acme/app\n' });
+});
+
+test('explainNamesADeletedAccountAsTheFirstResponder', async () => {
+  const deleted: Explanation = { ...mergedExplanation, facts: { ...mergedExplanation.facts, firstResponse: { kind: 'human', by: null, at: '2026-01-05T10:00:00Z' } } };
+
+  const outcome = await run(['pr', 'explain', '7'], undefined, () => Promise.resolve(deleted));
+
+  expect(outcome.stdout).toContain('first response     2026-01-05T10:00:00Z by (deleted account)');
+});
+
+test('explainNamesTheMergeAsTheFirstResponseWhenNobodyResponded', async () => {
+  const merge: Explanation = { ...mergedExplanation, facts: { ...mergedExplanation.facts, firstResponse: { kind: 'merge', at: '2026-01-05T18:00:00Z' } } };
+
+  const outcome = await run(['pr', 'explain', '7'], undefined, () => Promise.resolve(merge));
+
+  expect(outcome.stdout).toContain('first response     2026-01-05T18:00:00Z (the merge)');
 });
