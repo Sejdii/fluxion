@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { isLowSample } from './index.js';
+import { isLowSample } from '../src/index.js';
 
 test('periodWithFewerThanFiveMergedPrsIsLowSample', () => {
   const merged = 4;

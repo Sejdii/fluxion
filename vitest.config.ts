@@ -3,7 +3,9 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     projects: [
-      { test: { name: 'core', include: ['packages/core/**/*.test.ts'] } },
+      { test: { name: 'core', include: ['packages/core/test/**/*.test.ts'] } },
+      { test: { name: 'adapters', include: ['packages/adapters/test/**/*.test.ts'] } },
+      { test: { name: 'cli', include: ['packages/cli/test/**/*.test.ts'] } },
     ],
     coverage: {
       provider: 'v8',
