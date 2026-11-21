@@ -15,13 +15,13 @@ afterEach(() => {
   rmSync(workDir, { recursive: true, force: true });
 });
 
-test('commandOutsideAGitRepositoryExitsWith2AndExplainsOnStderr', async () => {
+test('commandInAFolderWithoutRepositoriesExitsWith2AndExplainsOnStderr', async () => {
   let stderr = '';
   const runners = createRunners(workDir, () => new Date('2026-03-20T10:00:00Z'));
 
   const code = await runCli(['pr', 'prsMerged', 'total', 'monthly'], runners, { stdout: () => undefined, stderr: (t) => (stderr += t) });
 
-  expect({ code, stderr }).toEqual({ code: 2, stderr: `error: ${workDir} is not inside a git repository\n` });
+  expect({ code, stderr }).toEqual({ code: 2, stderr: `error: No git repositories found in ${workDir}\n` });
 });
 
 test('usageMistakeOutsideAGitRepositoryStillExitsWith1', async () => {

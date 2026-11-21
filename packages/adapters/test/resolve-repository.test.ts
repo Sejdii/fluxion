@@ -40,7 +40,7 @@ test('repositoryWithoutAGitHubRemoteIsADataError', async () => {
 
   const result = resolveCurrentRepository(workDir);
 
-  await expect(result).rejects.toThrow('The git repository has no GitHub remote');
+  await expect(result).rejects.toThrow(`${workDir} has no GitHub remote`);
 });
 
 test('parsesHttpsRemoteWithoutGitSuffix', () => {
