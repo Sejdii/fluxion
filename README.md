@@ -2,7 +2,7 @@
 
 Fluxion measures whether a software team is getting faster, by showing trends in how pull requests move through review. It reads merged pull requests from GitHub through the `gh` CLI. Terms are defined in [GLOSSARY.md](GLOSSARY.md).
 
-Status: early. Three metrics work so far: `fluxion pr prsMerged total monthly`, and `fluxion pr reviewWaitingTime|totalReviewTime median|p90 monthly` (hours; periods with fewer than 5 merged PRs flag the median as `low n` and show no p90).
+Status: early. Six metrics work so far: `fluxion pr prsMerged total monthly`, `fluxion pr prSize|comments|reviewers median|p90 monthly`, and `fluxion pr reviewWaitingTime|totalReviewTime median|p90 monthly` (hours; periods with fewer than 5 merged PRs flag the median as `low n` and show no p90).
 
 ## Setup
 
@@ -74,6 +74,15 @@ period   reviewWaitingTime (hours)  n
 - Waiting time ends at the first comment or review by a human reviewer (not the author, not a bot). A PR with no such response uses its merge as the first response, so its waiting time is its total review time.
 - A period with fewer than 5 merged PRs is a low sample: the median is flagged `(low n)` and p90 shows `-`. `-` also means no merged PRs.
 - A value of `0` means a response came at the moment the PR became ready.
+
+### Size, comments and reviewers metrics
+
+`prSize`, `comments` and `reviewers` are per-PR measures that support `median` and `p90`, with the same low-sample rules:
+
+- `prSize` (lines): additions plus deletions, no exclusions.
+- `comments`: human issue comments, inline review comments and non-empty review bodies, including the author's replies. Bots are excluded.
+- `reviewers`: distinct humans other than the author who commented or submitted a review. People who were only asked to review do not count.
+- Only the first 100 comments and reviews, and the first 20 inline review threads (20 comments each), of a PR are read.
 
 ## Development
 

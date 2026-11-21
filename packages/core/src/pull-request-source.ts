@@ -21,6 +21,10 @@ export interface ReviewActivity {
   at: string;
 }
 
+export interface ReviewSubmission extends ReviewActivity {
+  hasBody: boolean;
+}
+
 export interface PullRequestActivity {
   number: number;
   author: Actor;
@@ -30,7 +34,8 @@ export interface PullRequestActivity {
   deletions: number;
   draftEvents: DraftEvent[];
   comments: ReviewActivity[];
-  reviews: ReviewActivity[];
+  reviewComments: ReviewActivity[];
+  reviews: ReviewSubmission[];
 }
 
 export interface PullRequestSource {

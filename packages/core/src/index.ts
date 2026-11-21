@@ -10,6 +10,7 @@ export type {
   RepositoryFinder,
   RepositoryRef,
   ReviewActivity,
+  ReviewSubmission,
 } from './pull-request-source.js';
 export { PERIODS } from './range.js';
 export { queryMetric } from './query-metric.js';

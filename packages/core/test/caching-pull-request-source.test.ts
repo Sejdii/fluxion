@@ -23,6 +23,7 @@ function pullRequest(number: number): PullRequestActivity {
     deletions: 1,
     draftEvents: [],
     comments: [],
+    reviewComments: [],
     reviews: [],
   };
 }

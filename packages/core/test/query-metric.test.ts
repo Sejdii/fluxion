@@ -25,6 +25,7 @@ function mergedAt(timestamp: string, number = 1): PullRequestActivity {
     deletions: 1,
     draftEvents: [],
     comments: [],
+    reviewComments: [],
     reviews: [],
   };
 }
@@ -151,7 +152,7 @@ test('unknownMetricIsAUsageError', async () => {
 
   const result = queryMetric(ports, request({ metric: 'nope' }), now);
 
-  await expect(result).rejects.toThrow(new UsageError('Unknown metric "nope" for family "pr". Available: prsMerged, reviewWaitingTime, totalReviewTime'));
+  await expect(result).rejects.toThrow(new UsageError('Unknown metric "nope" for family "pr". Available: prsMerged, reviewWaitingTime, totalReviewTime, prSize, comments, reviewers'));
 });
 
 test('unsupportedStatisticIsAUsageError', async () => {
@@ -217,6 +218,9 @@ test('listMetricsDescribesRegisteredMetricsWithTheirStatistics', () => {
       description: 'Hours from ready for review to merge',
       statistics: ['median', 'p90'],
     },
+    { family: 'pr', id: 'prSize', description: 'Lines added plus lines deleted', statistics: ['median', 'p90'] },
+    { family: 'pr', id: 'comments', description: 'Human comments per pull request', statistics: ['median', 'p90'] },
+    { family: 'pr', id: 'reviewers', description: 'Distinct human reviewers per pull request', statistics: ['median', 'p90'] },
   ]);
 });
 
