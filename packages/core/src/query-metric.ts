@@ -55,7 +55,8 @@ function checkPeriod(period: string): void {
 function monthRows(
   definition: MetricDefinition,
   statistic: string,
-  range: DateRange,   pullRequests: PullRequestActivity[],
+  range: DateRange,
+  pullRequests: PullRequestActivity[],
 ): MetricRow[] {
   return monthLabelsOf(range).map((period) => {
     const inPeriod = pullRequests.filter((pr) => pr.mergedAt.startsWith(period));
