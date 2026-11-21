@@ -7,7 +7,9 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@commander-js/extra-typings": "^15.1.0",
+    "@fluxion/adapters": "workspace:*",
     "@fluxion/core": "workspace:*",
-    "@fluxion/adapters": "workspace:*"
+    "commander": "^15.1.0"
   }
 }

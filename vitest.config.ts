@@ -4,6 +4,8 @@ export default defineConfig({
   test: {
     projects: [
       { test: { name: 'core', include: ['packages/core/**/*.test.ts'] } },
+      { test: { name: 'adapters', include: ['packages/adapters/**/*.test.ts'] } },
+      { test: { name: 'cli', include: ['packages/cli/**/*.test.ts'] } },
     ],
     coverage: {
       provider: 'v8',

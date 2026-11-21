@@ -12,6 +12,7 @@
     "depcruise:graph": "depcruise packages --config .dependency-cruiser.mjs --output-type dot | dot -T svg -o dependency-graph.svg",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "fluxion": "tsx packages/cli/src/bin.ts",
     "test": "vitest run --coverage",
     "build:web": "pnpm --filter @fluxion/web build",
     "e2e": "playwright test"
