@@ -1,6 +1,7 @@
 import type { DashboardMetric } from '@fluxion/core';
+import { Sparkline } from './chart/index.js';
 import { formatChange, formatValue } from './format.js';
-import { headlineOf, nameOf } from './metrics.js';
+import { chartPeriodsOf, headlineOf, isTotal, nameOf } from './metrics.js';
 
 interface RailProps {
   metrics: DashboardMetric[];
@@ -18,6 +19,7 @@ function RailRow({ metric, selected, onSelect }: { metric: DashboardMetric; sele
         <span className="value">{formatValue(metric.unit, headlineOf(metric, metric.tiles.current))}</span>
       </span>
       <span className="muted">{change ?? lowSample}</span>
+      <Sparkline kind={isTotal(metric) ? 'bars' : 'line'} periods={chartPeriodsOf(metric)} />
     </div>
   );
 }

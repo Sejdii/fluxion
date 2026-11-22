@@ -1,4 +1,5 @@
-import type { DashboardMetric, DashboardSummary } from '@fluxion/core';
+import type { DashboardMetric, DashboardRow, DashboardSummary } from '@fluxion/core';
+import type { ChartPeriod } from './chart/index.js';
 
 export const METRIC_NAMES: Record<string, string> = {
   reviewWaitingTime: 'Review waiting time',
@@ -24,4 +25,16 @@ export function headlineOf(metric: DashboardMetric, summary: DashboardSummary): 
 export function inRailOrder(metrics: DashboardMetric[]): DashboardMetric[] {
   const position = (metric: DashboardMetric): number => Object.keys(METRIC_NAMES).indexOf(metric.id);
   return [...metrics].sort((a, b) => position(a) - position(b));
+}
+
+export function chartPeriodsOf(metric: DashboardMetric): ChartPeriod[] {
+  const total = isTotal(metric);
+  return metric.rows.map((row: DashboardRow) => ({
+    period: row.period,
+    n: row.n,
+    median: row.values[total ? 'total' : 'median'] ?? null,
+    p90: row.values['p90'] ?? null,
+    lowSample: row.lowSample === true,
+    inProgress: row.inProgress === true,
+  }));
 }
