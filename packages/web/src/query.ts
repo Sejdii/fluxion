@@ -45,3 +45,24 @@ export function isDayPeriodAllowed(range: Range, maxMonths: number): boolean {
 export function applyChoice(query: Query, maxMonths: number): Query {
   return query.period === 'daily' && !isDayPeriodAllowed(query, maxMonths) ? { ...query, period: 'weekly' } : query;
 }
+
+// Mirrors EARLIEST_DATE in core; web may only import types from core.
+const EARLIEST_YEAR = 2008;
+const YEAR_LENGTH = 4;
+
+export function yearChoices(today: Date): number[] {
+  return Array.from({ length: today.getUTCFullYear() - EARLIEST_YEAR + 1 }, (_, index) => EARLIEST_YEAR + index);
+}
+
+export function yearRange(fromYear: number, toYear: number, today: Date): Range {
+  const until = toYear >= today.getUTCFullYear() ? isoDate(today) : `${toYear}-12-31`;
+  return { since: `${fromYear}-01-01`, until };
+}
+
+export function yearOf(date: string): number {
+  return Number(date.slice(0, YEAR_LENGTH));
+}
+
+export function snapToYears(range: Range, today: Date): Range {
+  return yearRange(yearOf(range.since), yearOf(range.until), today);
+}

@@ -113,3 +113,40 @@ test('repositoryTogglesStartCheckedAndApplyNeedsAtLeastOne', async ({ page, data
 
   await expect(page.getByRole('button', { name: 'Apply' })).toBeDisabled();
 });
+
+test('enteringYearSnapsTheRangeToWholeYearsAndAppliesImmediately', async ({ page, data }) => {
+  await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
+  await openDashboard(page);
+
+  await period(page, 'Year').click();
+
+  await expect(period(page, 'Year')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('input[type="date"]')).toHaveCount(0);
+  await expect(page.getByRole('combobox', { name: 'From' })).toHaveValue(`${new Date().getUTCFullYear() - 1}`);
+  await expect(page.getByRole('combobox', { name: 'To' })).toHaveValue(`${new Date().getUTCFullYear()}`);
+});
+
+test('yearPickerApplyNeedsAChangeAndFromNotAfterTo', async ({ page, data }) => {
+  await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
+  await openDashboard(page);
+  await period(page, 'Year').click();
+  const apply = page.getByRole('button', { name: 'Apply' });
+  await expect(apply).toBeDisabled();
+
+  await page.getByRole('combobox', { name: 'From' }).selectOption('2020');
+  await expect(apply).toBeEnabled();
+
+  await page.getByRole('combobox', { name: 'To' }).selectOption('2019');
+  await expect(apply).toBeDisabled();
+});
+
+test('leavingYearKeepsTheRangeAndBringsBackTheDateInputs', async ({ page, data }) => {
+  await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
+  await openDashboard(page);
+  await period(page, 'Year').click();
+  const year = new Date().getUTCFullYear() - 1;
+
+  await period(page, 'Month').click();
+
+  await expect(page.getByLabel('From')).toHaveValue(`${year}-01-01`);
+});

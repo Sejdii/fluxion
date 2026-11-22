@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { applyChoice, defaultQuery, isDayPeriodAllowed, queryKey, queryString, type Query } from '../src/query.js';
+import { applyChoice, defaultQuery, isDayPeriodAllowed, queryKey, queryString, snapToYears, yearChoices, yearRange, type Query } from '../src/query.js';
 
 const today = new Date('2026-11-22T15:00:00Z');
 const MAX_MONTHS = 12;
@@ -54,4 +54,32 @@ test('applyingAShortRangeKeepsTheDayPeriod', () => {
 
 test('queryKeyIgnoresTheOrderOfRepositories', () => {
   expect(queryKey(query({ repos: ['b', 'a'] }))).toBe(queryKey(query({ repos: ['a', 'b'] })));
+});
+
+test('yearRangeRunsFromTheFirstOfTheFromYearToTheEndOfTheToYear', () => {
+  expect(yearRange(2020, 2022, today)).toEqual({ since: '2020-01-01', until: '2022-12-31' });
+});
+
+test('yearRangeEndsTodayWhenTheToYearIsTheCurrentYear', () => {
+  expect(yearRange(2025, 2026, today)).toEqual({ since: '2025-01-01', until: '2026-11-22' });
+});
+
+test('aSingleYearIsAWholeYearRange', () => {
+  expect(yearRange(2024, 2024, today)).toEqual({ since: '2024-01-01', until: '2024-12-31' });
+});
+
+test('snapToYearsCoversAnArbitraryRangeWithWholeYears', () => {
+  expect(snapToYears({ since: '2025-12-01', until: '2026-11-22' }, today)).toEqual({ since: '2025-01-01', until: '2026-11-22' });
+  expect(snapToYears({ since: '2021-03-10', until: '2023-02-01' }, today)).toEqual({ since: '2021-01-01', until: '2023-12-31' });
+});
+
+test('snapToYearsLeavesAWholeYearRangeUnchanged', () => {
+  expect(snapToYears({ since: '2024-01-01', until: '2024-12-31' }, today)).toEqual({ since: '2024-01-01', until: '2024-12-31' });
+});
+
+test('yearChoicesRunFromTheEarliestSupportedYearToTheCurrentYear', () => {
+  const years = yearChoices(today);
+  expect(years[0]).toBe(2008);
+  expect(years.at(-1)).toBe(2026);
+  expect(years).toHaveLength(19);
 });
