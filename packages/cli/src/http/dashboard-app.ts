@@ -1,6 +1,6 @@
 import { isAbsolute } from 'node:path';
 import { serveStatic } from '@hono/node-server/serve-static';
-import { DataError, UsageError, type Dashboard, type RepositoryOption } from '@fluxion/core';
+import { DataError, UsageError, parseWorkSchedule, type Dashboard, type RepositoryOption, type WorkSchedule } from '@fluxion/core';
 import { Hono } from 'hono';
 
 export interface DashboardQuery {
@@ -8,6 +8,7 @@ export interface DashboardQuery {
   since?: string;
   until?: string;
   repos?: string[];
+  workSchedule?: WorkSchedule;
 }
 
 export interface DashboardUseCase {
@@ -25,6 +26,12 @@ function splitRepos(value: string | undefined): string[] | undefined {
   return paths.length === 0 ? undefined : paths;
 }
 
+function workScheduleOf(params: URLSearchParams): WorkSchedule | undefined {
+  const [days, hours, timeZone] = ['workDays', 'workHours', 'timezone'].map((name) => params.get(name) || undefined);
+  if (days === undefined && hours === undefined && timeZone === undefined) return undefined;
+  return parseWorkSchedule({ days, hours, timeZone });
+}
+
 function queryOf(params: URLSearchParams): DashboardQuery {
   const period = params.get('period');
   if (!period) throw new UsageError('Missing query parameter "period"');
@@ -32,6 +39,8 @@ function queryOf(params: URLSearchParams): DashboardQuery {
   const since = params.get('since');
   const until = params.get('until');
   const repos = splitRepos(params.get('repos') ?? undefined);
+  const workSchedule = workScheduleOf(params);
+  if (workSchedule) query.workSchedule = workSchedule;
   if (since) query.since = since;
   if (until) query.until = until;
   if (repos) query.repos = repos;

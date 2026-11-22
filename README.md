@@ -100,7 +100,7 @@ fluxion pr reviewWaitingTime median monthly --work-days mon-fri --work-hours 07:
 - The table starts with a `working time:` line and `--json` includes `workSchedule`, only when a schedule is set. Size, comments, reviewers and PRs merged are unaffected.
 - Invalid input (hours that do not start before they end, an unknown time zone, an empty day list, a malformed time) is a usage error (exit `1`).
 - `fluxion pr explain <number>` takes the same three flags (same defaults and validation). It then labels the first-response wait and the review-time values `(working time)`, adds a `working time:` line, and still shows the raw timestamps; `--json` includes `workSchedule` and `firstResponseWorkingHours` only when a schedule is set.
-- The dashboard does not use the schedule yet.
+- `fluxion` (the dashboard) takes the same three flags (same defaults and validation, checked at startup) as the schedule it starts with. `/api/pr` accepts `workDays`, `workHours` and `timezone` query parameters that override it, applies the schedule to the selected and the previous range alike, answers an invalid value with a `400`, and echoes `workSchedule` only when one is set.
 
 ### Size, comments and reviewers metrics
 

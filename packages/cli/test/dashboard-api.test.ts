@@ -65,6 +65,43 @@ test('apiPrOmitsParametersThatWereNotGiven', async () => {
   expect(api.queries).toEqual([{ period: 'monthly' }]);
 });
 
+test('apiPrParsesTheWorkScheduleParametersWithDefaults', async () => {
+  const api = harness();
+
+  await api.request('/api/pr?period=monthly&workDays=mon,wed&workHours=07:00-18:00&timezone=UTC');
+  await api.request('/api/pr?period=monthly&timezone=Europe/Warsaw');
+
+  expect(api.queries[0]?.workSchedule).toEqual({ days: ['mon', 'wed'], start: '07:00', end: '18:00', timeZone: 'UTC' });
+  expect(api.queries[1]?.workSchedule).toEqual({ days: ['mon', 'tue', 'wed', 'thu', 'fri'], start: '09:00', end: '17:00', timeZone: 'Europe/Warsaw' });
+});
+
+test('apiPrInvalidWorkScheduleIsABadRequestWithoutQuerying', async () => {
+  const api = harness();
+
+  const response = await api.request('/api/pr?period=monthly&workHours=18:00-07:00');
+
+  expect([response.status, await response.json(), api.queries]).toEqual([400, { error: 'Work hours "18:00-07:00" must start before they end' }, []]);
+});
+
+test.each([
+  ['workDays=funday', 'Unknown weekday "funday". Use mon, tue, wed, thu, fri, sat, sun'],
+  ['timezone=Mars/Base', 'Unknown time zone "Mars/Base". Use an IANA name such as Europe/Warsaw'],
+])('apiPrInvalidWorkScheduleParameter%#IsABadRequest', async (parameter, message) => {
+  const api = harness();
+
+  const response = await api.request(`/api/pr?period=monthly&${parameter}`);
+
+  expect([response.status, await response.json()]).toEqual([400, { error: message }]);
+});
+
+test('apiPrWithoutWorkScheduleParametersLeavesItOut', async () => {
+  const api = harness();
+
+  await api.request('/api/pr?period=monthly');
+
+  expect('workSchedule' in (api.queries[0] ?? {})).toBe(false);
+});
+
 test('apiPrWithoutPeriodIsABadRequest', async () => {
   const api = harness();
 
