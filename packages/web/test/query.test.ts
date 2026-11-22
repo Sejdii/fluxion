@@ -19,7 +19,7 @@ test('defaultRangeIsTheSameWhateverThePeriodLaterBecomes', () => {
 });
 
 test('queryKeyIncludesRepositoriesRangeAndPeriod', () => {
-  expect(queryKey(query())).toBe('app|2026-01-01|2026-03-20|monthly');
+  expect(queryKey(query())).toBe('app|2026-01-01|2026-03-20|monthly|server');
 });
 
 test('queryKeyDiffersWhenOnlyThePeriodDiffers', () => {

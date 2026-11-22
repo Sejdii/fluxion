@@ -1,6 +1,7 @@
 import type { RepositoryOption } from '@fluxion/core';
 import { useState } from 'react';
-import { applyChoice, isDayPeriodAllowed, snapToYears, yearChoices, yearRange, yearsOf, type Period, type Query, type Range } from './query.js';
+import { Settings } from './Settings.js';
+import { applyChoice, isDayPeriodAllowed, isValidSchedule, scheduleKey, snapToYears, yearChoices, yearRange, yearsOf, type Period, type Query, type Range } from './query.js';
 
 const PERIOD_CHOICES: { value: Period; label: string }[] = [
   { value: 'daily', label: 'Day' },
@@ -91,8 +92,8 @@ function Periods({ applied, dayAllowed, maxMonths, onPick }: { applied: Query; d
 }
 
 function isApplicable(draft: Query, applied: Query): boolean {
-  const changed = draft.repos.join() !== applied.repos.join() || draft.since !== applied.since || draft.until !== applied.until;
-  return changed && draft.repos.length > 0 && draft.since !== '' && draft.until !== '' && draft.since <= draft.until;
+  const changed = draft.repos.join() !== applied.repos.join() || draft.since !== applied.since || draft.until !== applied.until || scheduleKey(draft.workSchedule) !== scheduleKey(applied.workSchedule);
+  return changed && draft.repos.length > 0 && draft.since !== '' && draft.until !== '' && draft.since <= draft.until && isValidSchedule(draft.workSchedule);
 }
 
 export function Controls({ options, applied, dayPeriodMaxMonths, today, onApply, disabled }: ControlsProps) {
@@ -114,6 +115,7 @@ export function Controls({ options, applied, dayPeriodMaxMonths, today, onApply,
       <fieldset className="controls-body" disabled={disabled}>
         <Repositories options={options} repos={draft.repos} onChange={(repos) => change({ repos })} />
         {applied.period === 'yearly' ? <Years draft={draft} today={today} onChange={change} /> : <Dates draft={draft} onChange={change} />}
+        <Settings schedule={draft.workSchedule ?? null} onChange={(workSchedule) => change({ workSchedule })} />
         <button className="apply" disabled={!isApplicable(draft, applied)} onClick={apply}>
           Apply
         </button>

@@ -1,4 +1,8 @@
+import type { Weekday, WorkSchedule } from '@fluxion/core';
+
 export type Period = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+export type ScheduleChoice = WorkSchedule | null | undefined;
 
 export interface Range {
   since: string;
@@ -8,6 +12,21 @@ export interface Range {
 export interface Query extends Range {
   repos: string[];
   period: Period;
+  workSchedule?: ScheduleChoice;
+}
+
+export const WEEKDAYS: Weekday[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+
+export function defaultSchedule(): WorkSchedule {
+  return { days: WEEKDAYS.slice(0, 5), start: '09:00', end: '17:00', timeZone: new Intl.DateTimeFormat().resolvedOptions().timeZone };
+}
+
+export function isValidSchedule(schedule: ScheduleChoice): boolean {
+  return !schedule || (schedule.days.length > 0 && schedule.start !== '' && schedule.end !== '' && schedule.start < schedule.end && schedule.timeZone !== '');
+}
+
+export function scheduleKey(schedule: ScheduleChoice): string {
+  return schedule === undefined ? 'server' : schedule === null ? 'off' : [schedule.days.join(','), schedule.start, schedule.end, schedule.timeZone].join(' ');
 }
 
 const DEFAULT_MONTHS = 12;
@@ -23,7 +42,7 @@ export function defaultQuery(repos: string[], today: Date): Query {
 }
 
 export function queryKey(query: Query): string {
-  return [[...query.repos].sort().join(','), query.since, query.until, query.period].join('|');
+  return [[...query.repos].sort().join(','), query.since, query.until, query.period, scheduleKey(query.workSchedule)].join('|');
 }
 
 export function selectionKey(query: Query): string {
@@ -32,6 +51,13 @@ export function selectionKey(query: Query): string {
 
 export function queryString(query: Query, refresh: boolean): string {
   const params = new URLSearchParams({ repos: query.repos.join(','), since: query.since, until: query.until, period: query.period });
+  const schedule = query.workSchedule;
+  if (schedule === null) params.set('workSchedule', 'off');
+  if (schedule) {
+    params.set('workDays', schedule.days.join(','));
+    params.set('workHours', `${schedule.start}-${schedule.end}`);
+    params.set('timezone', schedule.timeZone);
+  }
   if (refresh) params.set('refresh', 'true');
   return params.toString();
 }

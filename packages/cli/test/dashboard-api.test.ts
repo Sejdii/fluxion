@@ -75,6 +75,14 @@ test('apiPrParsesTheWorkScheduleParametersWithDefaults', async () => {
   expect(api.queries[1]?.workSchedule).toEqual({ days: ['mon', 'tue', 'wed', 'thu', 'fri'], start: '09:00', end: '17:00', timeZone: 'Europe/Warsaw' });
 });
 
+test('apiPrWorkScheduleOffAsksForNoSchedule', async () => {
+  const api = harness();
+
+  await api.request('/api/pr?period=monthly&workSchedule=off');
+
+  expect(api.queries[0]?.workSchedule).toBeNull();
+});
+
 test('apiPrInvalidWorkScheduleIsABadRequestWithoutQuerying', async () => {
   const api = harness();
 

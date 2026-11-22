@@ -60,7 +60,7 @@ table.data th { color: var(--muted); font-weight: 500; }
 .check { display: flex; gap: 8px; align-items: center; font-size: 13px; }
 .dates { flex-direction: row; gap: 8px; }
 .dates label { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
-input[type='date'] { background: var(--panel-raised); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; font: inherit; min-width: 0; color-scheme: dark; }
+input[type='date'], input[type='time'], select { background: var(--panel-raised); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; font: inherit; min-width: 0; color-scheme: dark; }
 .apply, .periods button { background: var(--panel-raised); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
 .apply:disabled, .periods button:disabled { opacity: 0.45; cursor: not-allowed; }
 .periods { display: flex; gap: 4px; }
@@ -119,3 +119,6 @@ input[type='date'] { background: var(--panel-raised); color: var(--text); border
   .progress-bar::after { left: 0; width: 100%; opacity: 0.4; }
   .loading-layer { animation-duration: 0.01s; }
 }
+.days { flex-direction: row; flex-wrap: wrap; gap: 4px 10px; }
+.days legend { width: 100%; }
+.detail-head .muted { margin-left: 10px; }

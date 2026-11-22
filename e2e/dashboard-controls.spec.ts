@@ -175,3 +175,19 @@ test('leavingYearKeepsTheRangeAndBringsBackTheDateInputs', async ({ page, data }
   await expect(page.getByLabel('From')).toHaveValue(`${year - 1}-01-01`);
   await expect(page.locator('input[type="date"]').nth(1)).toHaveValue(new Date().toISOString().slice(0, 10));
 });
+
+test('workScheduleSettingsApplyAndSurviveAReload', async ({ page, data }) => {
+  await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
+  await openDashboard(page);
+  await expect(page.getByText(/working time:/)).toHaveCount(0);
+
+  await page.getByRole('checkbox', { name: 'Measure in working time' }).check();
+  await page.getByLabel('Start').fill('08:00');
+  await page.getByRole('checkbox', { name: 'Sat' }).check();
+  await page.getByRole('button', { name: 'Apply' }).click();
+
+  await expect(page.getByText(/working time: Mon–Sat 08:00–17:00/)).toBeVisible();
+  await page.reload();
+  await expect(page.getByText(/working time: Mon–Sat 08:00–17:00/)).toBeVisible();
+  await expect(page.getByRole('checkbox', { name: 'Measure in working time' })).toBeChecked();
+});

@@ -36,7 +36,7 @@ function dashboardUseCase(pullRequests: CachingPullRequestSource, selection: Rep
   return {
     repositories: selection.options,
     query: ({ repos, workSchedule, ...query }) => {
-      const schedule = workSchedule ?? starting.workSchedule;
+      const schedule = workSchedule === undefined ? starting.workSchedule : workSchedule;
       return queryDashboard({ pullRequests, repositories: selection.finder(repos ?? starting.repos) }, { family: 'pr', ...query, ...(schedule ? { workSchedule: schedule } : {}) }, now());
     },
     refresh: () => pullRequests.clear(),
