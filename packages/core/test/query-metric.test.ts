@@ -207,7 +207,7 @@ test('listMetricsDescribesRegisteredMetricsWithTheirStatistics', () => {
       statistics: ['median', 'p90'],
     },
     { family: 'pr', id: 'prSize', description: 'Lines added plus lines deleted', statistics: ['median', 'p90'] },
-    { family: 'pr', id: 'comments', description: 'Human comments per pull request', statistics: ['median', 'p90'] },
+    { family: 'pr', id: 'comments', description: 'Human comments per pull request', statistics: ['median', 'p90', 'total'] },
     { family: 'pr', id: 'reviewers', description: 'Distinct human reviewers per pull request', statistics: ['median', 'p90'] },
   ]);
 });

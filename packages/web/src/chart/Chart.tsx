@@ -12,7 +12,7 @@ const GRID_LINES = 4;
 const MEDIAN_WEIGHT = 2.5;
 
 function countOf(period: ChartPeriod): number {
-  return period.n;
+  return period.commentTotal ?? period.n;
 }
 
 function medianOf(period: ChartPeriod): number {

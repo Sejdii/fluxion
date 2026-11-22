@@ -82,6 +82,28 @@ test('perPullRequestRowsCarryMedianAndP90', async () => {
   expect(overview.metrics[3]?.rows[0]).toEqual({ period: '2026-02', n: 5, values: { median: 3, p90: 5 } });
 });
 
+function withComments(pullRequest: PullRequestActivity, humans: number, replies = 0): PullRequestActivity {
+  const human = { actor: { login: 'bob', isBot: false }, at: '2026-02-05T11:00:00Z' };
+  const bot = { actor: { login: 'ci', isBot: true }, at: '2026-02-05T11:00:00Z' };
+  const author = { actor: { login: 'ann', isBot: false }, at: '2026-02-05T12:00:00Z' };
+  return { ...pullRequest, comments: [...Array<typeof human>(humans).fill(human), bot, ...Array<typeof author>(replies).fill(author)] };
+}
+
+test('commentsRowsCarryTheTotalOfHumanCommentsIncludingAuthorRepliesAndExcludingBots', async () => {
+  const ports = portsWith(withComments(mergedAt('2026-02-05T10:00:00Z', 1), 2, 1), withComments(mergedAt('2026-02-06T10:00:00Z', 2), 4));
+
+  const comments = (await queryDashboard(ports, request(), now)).metrics[4];
+
+  expect(comments?.rows[0]).toMatchObject({ period: '2026-02', n: 2, values: { median: 3.5, total: 7 } });
+  expect(comments?.tiles.current.values['total']).toBe(7);
+});
+
+test('commentsTotalIsZeroForAPeriodWithoutMergedPullRequests', async () => {
+  const comments = (await queryDashboard(portsWith(), request(), now)).metrics[4];
+
+  expect(comments?.rows[0]?.values['total']).toBe(0);
+});
+
 test('emptyPeriodIsARowWithoutValues', async () => {
   const overview = await queryDashboard(portsWith(), request(), now);
 
