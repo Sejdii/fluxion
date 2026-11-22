@@ -27,11 +27,11 @@ function Status({ dashboard, onRefresh }: { dashboard: Dashboard; onRefresh(): v
   );
 }
 
-function Body({ metric }: { metric: DashboardMetric }) {
+function Body({ metric, dashboard }: { metric: DashboardMetric; dashboard: Dashboard }) {
   const [showData, setShowData] = useState(false);
   return (
     <>
-      <Tiles metric={metric} />
+      <Tiles metric={metric} previousRange={dashboard.previousRange} lowSampleThreshold={dashboard.lowSampleThreshold} />
       <Chart kind={isTotal(metric) ? 'bars' : 'line'} periods={chartPeriodsOf(metric)} label={`${nameOf(metric)} per period`} format={(value) => formatValue(metric.unit, value)} />
       {showData ? <DataTable metric={metric} /> : null}
       <button className="link-button" onClick={() => setShowData(!showData)}>
@@ -56,7 +56,7 @@ export function Detail({ dashboard, metric, error, onRefresh }: DetailProps) {
       </div>
       {error ? <Alert message={error} /> : null}
       <Status dashboard={dashboard} onRefresh={onRefresh} />
-      {dashboard.n === 0 ? <div className="empty">No merged PRs in this range</div> : <Body key={metric.id} metric={metric} />}
+      {dashboard.n === 0 ? <div className="empty">No merged PRs in this range</div> : <Body key={metric.id} metric={metric} dashboard={dashboard} />}
     </main>
   );
 }

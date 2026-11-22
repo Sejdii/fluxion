@@ -10,6 +10,18 @@ export const METRIC_NAMES: Record<string, string> = {
   reviewers: 'Reviewers',
 };
 
+export type Preference = 'lower' | 'higher' | 'neutral';
+
+const PREFERENCES: Record<string, Preference> = {
+  reviewWaitingTime: 'lower',
+  totalReviewTime: 'lower',
+  prsMerged: 'higher',
+};
+
+export function preferenceOf(metric: DashboardMetric): Preference {
+  return PREFERENCES[metric.id] ?? 'neutral';
+}
+
 export function nameOf(metric: DashboardMetric): string {
   return METRIC_NAMES[metric.id] ?? metric.id;
 }
