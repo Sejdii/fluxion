@@ -18,7 +18,7 @@ function mergedPullRequest(number: number, mergedAt: string) {
 test('apiPrReturnsTheDataSetForThisTest', async ({ request, data }) => {
   await data.setPullRequests([mergedPullRequest(1, '2026-03-01T10:00:00Z'), mergedPullRequest(2, '2026-03-02T10:00:00Z')]);
 
-  const response = await request.get('/api/pr?period=monthly&since=2026-03-01&until=2026-03-31&repos=ignored');
+  const response = await request.get('/api/pr?period=monthly&since=2026-03-01&until=2026-03-31');
   const body = await response.json();
 
   expect(body.metrics[3].rows[0]).toMatchObject({ period: '2026-03', n: 2, values: { median: 10 } });

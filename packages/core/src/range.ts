@@ -5,6 +5,7 @@ export const DEFAULT_RANGE_DAYS = 90;
 export const DAILY_RANGE_DAYS = 30;
 export const MONTHLY_RANGE_MONTHS = 12;
 export const YEARLY_RANGE_YEARS = 4;
+export const DAY_PERIOD_MAX_MONTHS = 12;
 export const EARLIEST_DATE = '2008-01-01';
 export const PERIODS = ['daily', 'weekly', 'monthly', 'yearly', 'overall'] as const;
 
@@ -42,4 +43,10 @@ export function previousRangeOf(range: DateRange): DateRange {
   const since = new Date(`${range.since}T00:00:00Z`).getTime();
   const days = (new Date(`${range.until}T00:00:00Z`).getTime() - since) / DAY_MS + 1;
   return { since: isoDate(new Date(since - days * DAY_MS)), until: isoDate(new Date(since - DAY_MS)) };
+}
+
+export function exceedsDayPeriodLimit(range: DateRange): boolean {
+  const start = new Date(`${range.since}T00:00:00Z`);
+  const limit = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + DAY_PERIOD_MAX_MONTHS, start.getUTCDate()));
+  return isoDate(limit) <= range.until;
 }

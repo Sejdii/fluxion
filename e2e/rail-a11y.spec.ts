@@ -98,14 +98,19 @@ test('railIsASingleTabStop', async ({ page, data }) => {
   await expect(page.locator('[role="option"][tabindex="-1"]')).toHaveCount(5);
 });
 
-test('tabOrderIsHeaderLinkThenRailThenDetailPane', async ({ page, data }) => {
+test('tabOrderIsHeaderLinkThenControlsThenRailThenDetailPane', async ({ page, data }) => {
   await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
   await openDashboard(page);
 
   await page.keyboard.press('Tab');
   await expect(page.getByRole('link', { name: 'Goodhart’s law' })).toBeFocused();
   await page.keyboard.press('Tab');
+  await expect(page.getByRole('checkbox', { name: 'acme/app' })).toBeFocused();
+  await page.getByRole('group', { name: 'Period' }).getByRole('button', { name: 'Year' }).focus();
+  await page.keyboard.press('Tab');
   await expect(page.getByRole('option', { selected: true })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Refresh' })).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(page.getByRole('button', { name: 'View data' })).toBeFocused();
 });

@@ -129,3 +129,27 @@ test('failingRepositoryIsNamedInTheDataError', async () => {
 
   await expect(queryDashboard(ports, request(), now)).rejects.toThrow('acme/app: boom');
 });
+
+test('overviewNamesThePooledRepositories', async () => {
+  const overview = await queryDashboard(portsWith(), request(), now);
+
+  expect(overview.repositories).toEqual(['acme/app']);
+});
+
+test('overviewStatesTheLongestRangeThatAllowsTheDayPeriod', async () => {
+  const overview = await queryDashboard(portsWith(), request(), now);
+
+  expect(overview.dayPeriodMaxMonths).toBe(12);
+});
+
+test('overviewRejectsTheDayPeriodOverTwelveMonths', async () => {
+  const overview = queryDashboard(portsWith(), request({ period: 'daily', since: '2025-03-01', until: '2026-03-20' }), now);
+
+  await expect(overview).rejects.toThrow('The day period needs a range of at most 12 months');
+});
+
+test('overviewAcceptsTheDayPeriodForExactlyTwelveMonths', async () => {
+  const overview = await queryDashboard(portsWith(), request({ period: 'daily', since: '2025-04-01', until: '2026-03-31' }), now);
+
+  expect(overview.range.since).toBe('2025-04-01');
+});

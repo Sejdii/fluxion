@@ -27,4 +27,4 @@ export type { ExplainPorts, ExplainRequest, Explanation, PullRequestFacts } from
 export type { FirstResponse } from './review-time.js';
 export type { MetricValue } from './registry.js';
 export { queryDashboard } from './dashboard-query.js';
-export type { Dashboard, DashboardMetric, DashboardRequest, DashboardRow, DashboardSummary } from './dashboard-query.js';
+export type { Dashboard, DashboardMetric, DashboardRequest, DashboardRow, DashboardSummary, RepositoryOption } from './dashboard-query.js';

@@ -1,6 +1,6 @@
 import { isAbsolute } from 'node:path';
 import { serveStatic } from '@hono/node-server/serve-static';
-import { DataError, UsageError, type Dashboard } from '@fluxion/core';
+import { DataError, UsageError, type Dashboard, type RepositoryOption } from '@fluxion/core';
 import { Hono } from 'hono';
 
 export interface DashboardQuery {
@@ -13,6 +13,7 @@ export interface DashboardQuery {
 export interface DashboardUseCase {
   query(query: DashboardQuery): Promise<Dashboard>;
   refresh(): Promise<void>;
+  repositories(): Promise<RepositoryOption[]>;
 }
 
 const HTTP_BAD_REQUEST = 400;
@@ -46,6 +47,7 @@ export function createDashboardApp(useCase: DashboardUseCase, staticRoot: string
     if (params.get('refresh') === 'true') await useCase.refresh();
     return context.json(await useCase.query(query));
   });
+  app.get('/api/repositories', async (context) => context.json({ repositories: await useCase.repositories() }));
   app.onError((error, context) => {
     if (error instanceof UsageError) return context.json({ error: error.message }, HTTP_BAD_REQUEST);
     if (error instanceof DataError) return context.json({ error: error.message }, HTTP_BAD_GATEWAY);

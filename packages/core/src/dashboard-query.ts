@@ -1,9 +1,9 @@
 import { isLowSample, LOW_SAMPLE_THRESHOLD } from './low-sample.js';
 import { UsageError } from './errors.js';
 import { bucketsOf } from './periods.js';
-import type { DateRange, PullRequestActivity } from './pull-request-source.js';
+import { displayName, type DateRange, type PullRequestActivity } from './pull-request-source.js';
 import { checkPeriod, pooledPullRequests, type MetricPorts } from './query-metric.js';
-import { previousRangeOf, resolveRange } from './range.js';
+import { DAY_PERIOD_MAX_MONTHS, exceedsDayPeriodLimit, previousRangeOf, resolveRange } from './range.js';
 import { definitionsOf, type MetricDefinition } from './registry.js';
 
 export interface DashboardRequest {
@@ -37,6 +37,8 @@ export interface Dashboard {
   n: number;
   fetchedAt: string;
   lowSampleThreshold: number;
+  dayPeriodMaxMonths: number;
+  repositories: string[];
   metrics: DashboardMetric[];
 }
 
@@ -67,10 +69,27 @@ export async function queryDashboard(ports: MetricPorts, request: DashboardReque
   if (definitions.length === 0) throw new UsageError(`Unknown family "${request.family}"`);
   checkPeriod(request.period);
   const range = resolveRange(request.period, request.since, request.until, now);
+  if (request.period === 'daily' && exceedsDayPeriodLimit(range)) {
+    throw new UsageError(`The day period needs a range of at most ${DAY_PERIOD_MAX_MONTHS} months`);
+  }
   const previousRange = previousRangeOf(range);
   const repositories = await ports.repositories.find();
   const current = await pooledPullRequests(ports.pullRequests, repositories, range);
   const previous = await pooledPullRequests(ports.pullRequests, repositories, previousRange);
   const metrics = definitions.map((definition) => metricOf(definition, { period: request.period, range, current, previous }, now));
-  return { range, previousRange, n: current.length, fetchedAt: now.toISOString(), lowSampleThreshold: LOW_SAMPLE_THRESHOLD, metrics };
+  return {
+    range,
+    previousRange,
+    n: current.length,
+    fetchedAt: now.toISOString(),
+    lowSampleThreshold: LOW_SAMPLE_THRESHOLD,
+    dayPeriodMaxMonths: DAY_PERIOD_MAX_MONTHS,
+    repositories: repositories.map(displayName),
+    metrics,
+  };
+}
+
+export interface RepositoryOption {
+  path: string;
+  name: string;
 }

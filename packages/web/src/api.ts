@@ -1,10 +1,16 @@
-import type { Dashboard } from '@fluxion/core';
+import type { Dashboard, RepositoryOption } from '@fluxion/core';
+import { queryString, type Query } from './query.js';
 
-const DEFAULT_PERIOD = 'monthly';
+async function bodyOf<T>(response: Response): Promise<T> {
+  const body = (await response.json()) as T | { error: string };
+  if (typeof body === 'object' && body !== null && 'error' in body) throw new Error(String(body.error));
+  return body as T;
+}
 
-export async function fetchDashboard(): Promise<Dashboard> {
-  const response = await fetch(`/api/pr?period=${DEFAULT_PERIOD}`);
-  const body = (await response.json()) as Dashboard | { error: string };
-  if ('error' in body) throw new Error(body.error);
-  return body;
+export async function fetchDashboard(query: Query, refresh: boolean): Promise<Dashboard> {
+  return bodyOf<Dashboard>(await fetch(`/api/pr?${queryString(query, refresh)}`));
+}
+
+export async function fetchRepositories(): Promise<RepositoryOption[]> {
+  return (await bodyOf<{ repositories: RepositoryOption[] }>(await fetch('/api/repositories'))).repositories;
 }

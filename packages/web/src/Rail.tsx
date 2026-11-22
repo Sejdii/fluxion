@@ -1,5 +1,5 @@
 import type { DashboardMetric } from '@fluxion/core';
-import type { KeyboardEvent } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
 import { useRef } from 'react';
 import { Sparkline } from './chart/index.js';
 import { formatChange, formatValue } from './format.js';
@@ -9,6 +9,8 @@ interface RailProps {
   metrics: DashboardMetric[];
   selectedId: string;
   onSelect(id: string): void;
+  controls: ReactNode;
+  loading: boolean;
 }
 
 interface RowProps {
@@ -55,6 +57,16 @@ function RailRow({ metric, selected, onSelect, setRef }: RowProps) {
   );
 }
 
+function Skeleton() {
+  return (
+    <div className="metric-list" aria-hidden="true">
+      {[0, 1, 2, 3, 4, 5].map((slot) => (
+        <div key={slot} className="row skeleton" />
+      ))}
+    </div>
+  );
+}
+
 function targetIndex(key: string, current: number, last: number): number | null {
   if (key === 'ArrowDown') return Math.min(current + 1, last);
   if (key === 'ArrowUp') return Math.max(current - 1, 0);
@@ -77,13 +89,15 @@ function keyHandler(props: RailProps, rows: { current: (HTMLDivElement | null)[]
 }
 
 export function Rail(props: RailProps) {
-  const { metrics, selectedId, onSelect } = props;
+  const { metrics, selectedId, onSelect, controls, loading } = props;
   const rows = useRef<(HTMLDivElement | null)[]>([]);
   const onKeyDown = keyHandler(props, rows);
   return (
     <aside className="rail">
       <div className="brand">fluxion</div>
-      <div role="listbox" aria-label="Metrics" className="metric-list" onKeyDown={onKeyDown}>
+      {controls}
+      {loading ? <Skeleton /> : null}
+      <div role="listbox" aria-label="Metrics" className="metric-list" onKeyDown={onKeyDown} hidden={loading}>
         {metrics.map((metric, index) => (
           <RailRow
             key={metric.id}
