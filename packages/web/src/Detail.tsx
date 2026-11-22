@@ -1,7 +1,9 @@
 import type { Dashboard, DashboardMetric } from '@fluxion/core';
 import { useState } from 'react';
+import { Chart } from './chart/index.js';
 import { DataTable } from './DataTable.js';
-import { nameOf } from './metrics.js';
+import { formatValue } from './format.js';
+import { chartPeriodsOf, isTotal, nameOf } from './metrics.js';
 import { Tiles } from './Tiles.js';
 
 const GOODHARTS_LAW_URL = 'https://lawsofsoftwareengineering.com/laws/goodharts-law/';
@@ -24,6 +26,7 @@ function Body({ metric }: { metric: DashboardMetric }) {
   return (
     <>
       <Tiles metric={metric} />
+      <Chart kind={isTotal(metric) ? 'bars' : 'line'} periods={chartPeriodsOf(metric)} label={`${nameOf(metric)} per period`} format={(value) => formatValue(metric.unit, value)} />
       {showData ? <DataTable metric={metric} /> : null}
       <button className="link-button" onClick={() => setShowData(!showData)}>
         {showData ? 'Hide data' : 'View data'}

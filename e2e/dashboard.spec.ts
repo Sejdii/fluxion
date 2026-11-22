@@ -194,3 +194,31 @@ test('goodhartsLawLinkPointsToTheLawsOfSoftwareEngineering', async ({ page, data
 
   await expect(page.getByRole('link', { name: 'Goodhart’s law' })).toHaveAttribute('href', GOODHARTS_LAW_URL);
 });
+
+test('chartMarksTheInProgressPeriodAndShowsATooltip', async ({ page, data }) => {
+  await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
+  await openDashboard(page);
+  await metricRow(page, 'PR size').click();
+
+  await page.locator('.chart svg rect[fill="transparent"]').last().hover();
+
+  await expect(page.getByRole('tooltip')).toContainText('in progress');
+  await expect(page.getByRole('tooltip')).toContainText('n 5');
+});
+
+test('chartRendersForPrsMergedAsBars', async ({ page, data }) => {
+  await data.setPullRequests(recentPullRequests([10, 20, 30]));
+  await openDashboard(page);
+
+  await metricRow(page, 'PRs merged').click();
+
+  await expect(page.locator('.chart .count-bar')).toHaveCount(1);
+});
+
+test('railRowsCarryDecorativeSparklines', async ({ page, data }) => {
+  await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
+
+  await openDashboard(page);
+
+  await expect(page.locator('[role="option"] svg[aria-hidden="true"]')).toHaveCount(6);
+});
