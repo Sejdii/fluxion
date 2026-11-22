@@ -115,7 +115,7 @@ test('changeIsSignedAndNeutralAgainstThePreviousRange', async ({ page, data }) =
 
   await metricRow(page, 'PR size').click();
 
-  await expect(tile(page, 'Median')).toContainText('+50%');
+  await expect(tile(page, 'Median')).toContainText('▲ 50%');
 });
 
 test('changeIsHiddenWhenTheCurrentRangeIsALowSample', async ({ page, data }) => {

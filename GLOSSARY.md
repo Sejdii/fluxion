@@ -39,7 +39,7 @@ The lines added plus the lines deleted in a merged PR, with no exclusions.
 _Avoid_: Diff size, change size
 
 **Comments**:
-The number of human comments on a merged PR: issue comments, inline review comments and non-empty review bodies, including the author's replies.
+The number of human comments on a merged PR: issue comments, inline review comments and non-empty review bodies, including the author's replies. The number of comments in a period is the sum over the merged PRs of that period.
 _Avoid_: Discussion size
 
 **Reviewers**:
@@ -67,3 +67,11 @@ _Avoid_: Average, mean
 **P90**:
 The value that 90% of merged PRs stay at or below. It shows the slow tail that the median hides.
 _Avoid_: Worst case, maximum
+
+**Previous range**:
+The range of the same length that ends the day before the selected range starts. It is the baseline that the change is measured against.
+_Avoid_: Previous period (a period is a day, week, month or year bucket), prior window
+
+**Change**:
+The percent difference of a statistic between the selected range and the previous range. It is not shown when either range is a low sample or the previous value is zero.
+_Avoid_: Trend, delta, growth

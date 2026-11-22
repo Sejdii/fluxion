@@ -67,3 +67,12 @@ input[type='date'] { background: var(--panel-raised); color: var(--text); border
 .periods button[aria-pressed='true'] { border-color: var(--accent); border-bottom-width: 3px; }
 .row.skeleton { height: 62px; background: var(--panel-raised); opacity: 0.5; cursor: default; }
 .error { border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; background: var(--panel); text-align: left; padding: 10px 14px; color: var(--text); }
+:root { --good: #4cc38a; --bad: #ff7a7a; }
+.tile { position: relative; }
+.tile-change { min-height: 24px; display: flex; gap: 8px; align-items: center; }
+.change { position: relative; background: none; border: 0; padding: 0 2px; cursor: help; font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--muted); border-radius: 4px; }
+.change:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.change-good { color: var(--good); }
+.change-bad { color: var(--bad); }
+.change-tip { display: none; position: absolute; left: 0; top: 100%; z-index: 5; margin-top: 4px; width: max-content; max-width: 260px; text-align: left; white-space: normal; background: var(--panel-raised); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; color: var(--text); font-size: 12.5px; }
+.change:hover .change-tip, .change:focus .change-tip { display: block; }

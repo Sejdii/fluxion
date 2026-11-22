@@ -111,6 +111,10 @@ test('tabOrderIsHeaderLinkThenControlsThenRailThenDetailPane', async ({ page, da
   await expect(page.getByRole('option', { selected: true })).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(page.getByRole('button', { name: 'Refresh' })).toBeFocused();
+  for (const tile of ['Median', 'p90', 'Merged PRs (n)']) {
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('group', { name: tile }).getByRole('button')).toBeFocused();
+  }
   await page.keyboard.press('Tab');
   await expect(page.getByRole('button', { name: 'View data' })).toBeFocused();
 });
@@ -120,7 +124,7 @@ test('rowAccessibleNameCarriesMetricValueAndChange', async ({ page, data }) => {
 
   await openDashboard(page);
 
-  await expect(page.getByRole('option', { name: 'PR size, 30, +50%' })).toBeVisible();
+  await expect(page.getByRole('option', { name: 'PR size, 30, up 50% vs previous range' })).toBeVisible();
 });
 
 test('rowAccessibleNameSaysLowSampleWhenItApplies', async ({ page, data }) => {

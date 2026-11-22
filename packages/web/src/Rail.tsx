@@ -2,7 +2,8 @@ import type { DashboardMetric } from '@fluxion/core';
 import type { KeyboardEvent, ReactNode } from 'react';
 import { useRef } from 'react';
 import { Sparkline } from './chart/index.js';
-import { formatChange, formatValue } from './format.js';
+import { changeOf } from './change.js';
+import { formatValue } from './format.js';
 import { chartPeriodsOf, headlineOf, isTotal, nameOf } from './metrics.js';
 
 interface RailProps {
@@ -20,20 +21,25 @@ interface RowProps {
   setRef(element: HTMLDivElement | null): void;
 }
 
-function lowSampleOf(metric: DashboardMetric): string | null {
-  return metric.tiles.current.lowSample ? 'low sample' : null;
-}
-
 function headlineValue(metric: DashboardMetric): string {
   return formatValue(metric.unit, headlineOf(metric, metric.tiles.current));
 }
 
-function changeText(metric: DashboardMetric): string | null {
-  return formatChange(metric) ?? lowSampleOf(metric);
+function headlineChange(metric: DashboardMetric) {
+  const change = changeOf(isTotal(metric) ? 'total' : 'median', { metric, previousRange: { since: '', until: '' }, lowSampleThreshold: 0 });
+  return change.available ? change : null;
 }
 
 function accessibleName(metric: DashboardMetric): string {
-  return [nameOf(metric), headlineValue(metric), changeText(metric)].filter(Boolean).join(', ');
+  const change = headlineChange(metric);
+  const note = change ? change.short : metric.tiles.current.lowSample ? 'low sample' : null;
+  return [nameOf(metric), headlineValue(metric), note].filter(Boolean).join(', ');
+}
+
+function RowChange({ metric }: { metric: DashboardMetric }) {
+  const change = headlineChange(metric);
+  if (change) return <span className={`muted change-${change.tone}`}>{change.text}</span>;
+  return <span className="muted">{metric.tiles.current.lowSample ? 'low sample' : null}</span>;
 }
 
 function RailRow({ metric, selected, onSelect, setRef }: RowProps) {
@@ -51,7 +57,7 @@ function RailRow({ metric, selected, onSelect, setRef }: RowProps) {
         <span>{nameOf(metric)}</span>
         <span className="value">{headlineValue(metric)}</span>
       </span>
-      <span className="muted">{changeText(metric)}</span>
+      <RowChange metric={metric} />
       <Sparkline kind={isTotal(metric) ? 'bars' : 'line'} periods={chartPeriodsOf(metric)} />
     </div>
   );
