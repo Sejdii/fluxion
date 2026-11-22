@@ -97,3 +97,9 @@ test('theRailShowsNothingForAnUnavailablePreviousButKeepsCurrentLowSample', () =
   expect(noPrevious).not.toContain('low sample');
   expect(rail(perPr('reviewWaitingTime', summary(3, { median: 1, p90: 1 }, true), summary(40, { median: 1, p90: 1 })))).toContain('low sample');
 });
+
+test('theMergedPrsTileStillComparesCountsWhenBothRangesAreLowSample', () => {
+  const markup = tiles(perPr('reviewWaitingTime', summary(12, { median: 1, p90: 1 }, true), summary(3, { median: 1, p90: 1 }, true)));
+  expect(markup).toContain('Merged PRs 12 vs 3 in the previous range');
+  expect(markup).toContain('▲ 300%');
+});

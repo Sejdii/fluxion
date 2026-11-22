@@ -36,6 +36,7 @@ function signed(percent: number): string {
 
 function unavailableReason(statistic: Statistic, current: DashboardSummary, previous: DashboardSummary, threshold: number): string | null {
   if (previous.n === 0) return 'the previous range had no merged PRs';
+  if (statistic === 'n') return null;
   if (previous.lowSample) return `the previous range had fewer than ${threshold} merged PRs`;
   if (current.lowSample) return `the selected range has fewer than ${threshold} merged PRs`;
   if (valueOf(current, statistic) === null) return 'the selected range has no value';
