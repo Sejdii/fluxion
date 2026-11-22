@@ -6,7 +6,7 @@ export const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 const EARLIER_RANGE_AGO_MS = 400 * DAY_MS;
 
-function pullRequest(number: number, mergedAgoMs: number, lines: number): FetchedPullRequest {
+function pullRequest(number: number, mergedAgoMs: number, lines: number, commentCount = 0): FetchedPullRequest {
   const mergedAt = new Date(Date.now() - mergedAgoMs);
   return {
     number,
@@ -16,7 +16,7 @@ function pullRequest(number: number, mergedAgoMs: number, lines: number): Fetche
     additions: lines,
     deletions: 0,
     draftEvents: [],
-    comments: [],
+    comments: Array.from({ length: commentCount }, () => ({ actor: { login: 'bob', isBot: false }, at: mergedAt.toISOString() })),
     reviewComments: [],
     reviews: [],
   };
@@ -37,4 +37,8 @@ export function metricRow(page: Page, name: string) {
 export async function openDashboard(page: Page): Promise<void> {
   await page.goto('/');
   await expect(page.getByRole('option').first()).toBeVisible();
+}
+
+export function commentedPullRequests(commentCounts: number[]): FetchedPullRequest[] {
+  return commentCounts.map((count, index) => pullRequest(index + 1, HOUR_MS, 10, count));
 }

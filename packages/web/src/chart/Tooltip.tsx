@@ -23,6 +23,7 @@ export function Tooltip({ period, format, showP90, leftPercent }: TooltipProps) 
       <div>{showP90 ? 'Median' : 'Total'} {format(period.median)}</div>
       {hasP90 ? <div>p90 {format(period.p90)}</div> : null}
       <div>n {period.n}</div>
+      {period.commentTotal === undefined ? null : <div>Comments {period.commentTotal}</div>}
     </div>
   );
 }

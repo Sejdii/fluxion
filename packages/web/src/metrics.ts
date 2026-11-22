@@ -27,7 +27,11 @@ export function nameOf(metric: DashboardMetric): string {
 }
 
 export function isTotal(metric: DashboardMetric): boolean {
-  return metric.tiles.current.values['total'] !== undefined;
+  return metric.tiles.current.values['median'] === undefined && metric.tiles.current.values['total'] !== undefined;
+}
+
+export function hasTotalAlongside(metric: DashboardMetric): boolean {
+  return metric.tiles.current.values['median'] !== undefined && metric.tiles.current.values['total'] !== undefined;
 }
 
 export function headlineOf(metric: DashboardMetric, summary: DashboardSummary): number | null {
@@ -41,9 +45,11 @@ export function inRailOrder(metrics: DashboardMetric[]): DashboardMetric[] {
 
 export function chartPeriodsOf(metric: DashboardMetric): ChartPeriod[] {
   const total = isTotal(metric);
+  const commentTotals = hasTotalAlongside(metric);
   return metric.rows.map((row: DashboardRow) => ({
     period: row.period,
     n: row.n,
+    ...(commentTotals ? { commentTotal: row.values['total'] ?? 0 } : {}),
     median: row.values[total ? 'total' : 'median'] ?? null,
     p90: row.values['p90'] ?? null,
     lowSample: row.lowSample === true,

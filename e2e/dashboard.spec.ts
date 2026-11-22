@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import type { FetchedPullRequest } from '../packages/core/src/index.js';
 import { expect, test } from './fixtures.js';
-import { earlierPullRequests, metricRow, openDashboard, recentPullRequests } from './pull-requests.js';
+import { commentedPullRequests, earlierPullRequests, metricRow, openDashboard, recentPullRequests } from './pull-requests.js';
 
 const GOODHARTS_LAW_URL = 'https://lawsofsoftwareengineering.com/laws/goodharts-law/';
 const IN_PROGRESS_PERIOD = /^\d{4}-\d{2} \(in progress\)$/;
@@ -186,4 +186,48 @@ test('railRowsCarryDecorativeSparklines', async ({ page, data }) => {
   await openDashboard(page);
 
   await expect(page.locator('[role="option"] svg[aria-hidden="true"]')).toHaveCount(6);
+});
+
+test('commentsBarsShowTotalCommentsAndTooltipShowsBothNAndTheTotal', async ({ page, data }) => {
+  await data.setPullRequests(commentedPullRequests([1, 2, 3, 4, 5]));
+  await openDashboard(page);
+
+  await metricRow(page, 'Comments').click();
+
+  await expect(page.locator('.chart .n-bar')).toHaveCount(1);
+  await page.locator('.chart svg rect[fill="transparent"]').last().hover();
+  await expect(page.getByRole('tooltip')).toContainText('n 5');
+  await expect(page.getByRole('tooltip')).toContainText('Comments 15');
+});
+
+test('commentsViewDataShowsNAndTheCommentTotal', async ({ page, data }) => {
+  await data.setPullRequests(commentedPullRequests([1, 2, 3, 4, 5]));
+  await openDashboard(page);
+  await metricRow(page, 'Comments').click();
+
+  await page.getByRole('button', { name: 'View data' }).click();
+
+  const lastRow = page.getByRole('table').getByRole('row').last();
+  await expect(lastRow.getByRole('cell')).toHaveText([IN_PROGRESS_PERIOD, '5', '3', '5', '15']);
+});
+
+test('otherMetricsKeepPrCountBarsAndNoCommentTotal', async ({ page, data }) => {
+  await data.setPullRequests(commentedPullRequests([1, 2, 3, 4, 5]));
+  await openDashboard(page);
+  await metricRow(page, 'PR size').click();
+
+  await page.locator('.chart svg rect[fill="transparent"]').last().hover();
+
+  await expect(page.getByRole('tooltip')).toContainText('n 5');
+  await expect(page.getByRole('tooltip')).not.toContainText('Comments');
+});
+
+test('commentsShowsATotalTileAndLabelsItsBars', async ({ page, data }) => {
+  await data.setPullRequests(commentedPullRequests([1, 2, 3, 4, 5]));
+  await openDashboard(page);
+
+  await metricRow(page, 'Comments').click();
+
+  await expect(tile(page, 'Total')).toContainText('15');
+  await expect(page.getByText('Bars: total comments')).toBeVisible();
 });

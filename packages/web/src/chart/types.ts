@@ -1,6 +1,7 @@
 export interface ChartPeriod {
   period: string;
   n: number;
+  commentTotal?: number;
   median: number | null;
   p90: number | null;
   lowSample: boolean;
@@ -13,6 +14,7 @@ export interface ChartProps {
   kind: ChartKind;
   periods: ChartPeriod[];
   label: string;
+  barsLabel?: string;
   format(value: number | null): string;
 }
 

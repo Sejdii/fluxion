@@ -59,10 +59,13 @@ const registry: readonly MetricDefinition[] = [
   {
     id: 'comments',
     family: 'pr',
-    description: 'Human comments per pull request',
-    statistics: ['median', 'p90'],
+    description: 'Human comments per pull request; total is the sum over the period',
+    statistics: ['median', 'p90', 'total'],
     perPullRequest: true,
-    calculate: (pullRequests, statistic) => summarize(pullRequests.map(commentCount), statistic),
+    calculate: (pullRequests, statistic) => {
+      const counts = pullRequests.map(commentCount);
+      return statistic === 'total' ? counts.reduce((sum, count) => sum + count, 0) : summarize(counts, statistic);
+    },
   },
   {
     id: 'reviewers',
