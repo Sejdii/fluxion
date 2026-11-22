@@ -99,7 +99,8 @@ fluxion pr reviewWaitingTime median monthly --work-days mon-fri --work-hours 07:
 - Hours are read in local wall-clock time, so a daylight-saving day can be an hour shorter or longer.
 - The table starts with a `working time:` line and `--json` includes `workSchedule`, only when a schedule is set. Size, comments, reviewers and PRs merged are unaffected.
 - Invalid input (hours that do not start before they end, an unknown time zone, an empty day list, a malformed time) is a usage error (exit `1`).
-- Only the `metric` command uses the schedule; the dashboard does not yet.
+- `fluxion pr explain <number>` takes the same three flags (same defaults and validation). It then labels the first-response wait and the review-time values `(working time)`, adds a `working time:` line, and still shows the raw timestamps; `--json` includes `workSchedule` and `firstResponseWorkingHours` only when a schedule is set.
+- The dashboard does not use the schedule yet.
 
 ### Size, comments and reviewers metrics
 

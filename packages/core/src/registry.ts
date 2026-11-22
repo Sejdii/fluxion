@@ -104,11 +104,11 @@ export interface MetricValue {
   value: number | null;
 }
 
-export function valuesOfPullRequest(family: string, pullRequest: PullRequestActivity): MetricValue[] {
+export function valuesOfPullRequest(family: string, pullRequest: PullRequestActivity, schedule?: WorkSchedule): MetricValue[] {
   return registry
     .filter((definition) => definition.family === family)
     .map((definition) => {
-      const value = definition.calculate([pullRequest], definition.statistics[0]);
+      const value = definition.calculate([pullRequest], definition.statistics[0], schedule);
       return definition.unit ? { metric: definition.id, unit: definition.unit, value } : { metric: definition.id, value };
     });
 }
