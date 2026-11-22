@@ -2,13 +2,13 @@ import type { Dashboard } from '@fluxion/core';
 import { useState } from 'react';
 import { Controls } from './Controls.js';
 import { Alert, Detail } from './Detail.js';
+import { DetailSkeleton } from './Loading.js';
 import { inRailOrder } from './metrics.js';
 import { selectionKey } from './query.js';
 import { Rail } from './Rail.js';
 import { useDashboard } from './useDashboard.js';
 
 const GOODHARTS_LAW_URL = 'https://lawsofsoftwareengineering.com/laws/goodharts-law/';
-const LOADING_MESSAGE = 'Loading all six metrics…';
 
 function Header() {
   return (
@@ -20,35 +20,42 @@ function Header() {
   );
 }
 
-function Placeholder({ loading, error }: { loading: boolean; error: string | null }) {
+function ErrorPane({ message, onRetry }: { message: string; onRetry(): void }) {
   return (
     <main className="detail">
-      {loading ? <div className="loading" aria-busy="true">{LOADING_MESSAGE}</div> : null}
-      {error ? <Alert message={error} /> : null}
+      <div className="error-row">
+        <Alert message={message} />
+        <button className="retry" onClick={onRetry}>
+          Retry
+        </button>
+      </div>
     </main>
   );
 }
 
-function DetailOrPlaceholder({ dashboard, selectedId, loading, error, onRefresh }: { dashboard: Dashboard | null; selectedId: string | undefined; loading: boolean; error: string | null; onRefresh(): void }) {
+function DetailPane({ dashboard, selectedId, loading, error, onRefresh, onRetry }: { dashboard: Dashboard | null; selectedId: string | undefined; loading: boolean; error: string | null; onRefresh(): void; onRetry(): void }) {
+  if (loading) return <DetailSkeleton />;
+  if (error) return <ErrorPane message={error} onRetry={onRetry} />;
   const metrics = dashboard ? inRailOrder(dashboard.metrics) : [];
   const selected = metrics.find((metric) => metric.id === selectedId) ?? metrics[0];
-  if (loading || !dashboard || !selected) return <Placeholder loading={loading} error={error} />;
-  return <Detail dashboard={dashboard} metric={selected} error={error} onRefresh={onRefresh} />;
+  if (!dashboard || !selected) return <main className="detail" />;
+  return <Detail dashboard={dashboard} metric={selected} onRefresh={onRefresh} />;
 }
 
 export function App() {
   const state = useDashboard();
   const [selectedId, setSelectedId] = useState<string>();
-  const metrics = state.dashboard ? inRailOrder(state.dashboard.metrics) : [];
+  const showing = state.loading || state.error ? null : state.dashboard;
+  const metrics = showing ? inRailOrder(showing.metrics) : [];
   const controls = state.query && state.dashboard ? (
-    <Controls key={selectionKey(state.query)} options={state.options} applied={state.query} dayPeriodMaxMonths={state.dashboard.dayPeriodMaxMonths} today={new Date()} onApply={state.apply} />
+    <Controls key={selectionKey(state.query)} options={state.options} applied={state.query} dayPeriodMaxMonths={state.dashboard.dayPeriodMaxMonths} today={new Date()} onApply={state.apply} disabled={state.loading} />
   ) : null;
   return (
     <>
       <Header />
       <div className="shell">
         <Rail metrics={metrics} selectedId={selectedId ?? metrics[0]?.id ?? ''} onSelect={setSelectedId} controls={controls} loading={state.loading} />
-        <DetailOrPlaceholder dashboard={state.dashboard} selectedId={selectedId} loading={state.loading} error={state.error} onRefresh={state.refresh} />
+        <DetailPane dashboard={state.dashboard} selectedId={selectedId} loading={state.loading} error={state.error} onRefresh={state.refresh} onRetry={state.retry} />
       </div>
     </>
   );

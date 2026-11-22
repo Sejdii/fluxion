@@ -15,6 +15,7 @@ interface ControlsProps {
   dayPeriodMaxMonths: number;
   today: Date;
   onApply(query: Query): void;
+  disabled: boolean;
 }
 
 function toggled(repos: string[], path: string): string[] {
@@ -94,7 +95,7 @@ function isApplicable(draft: Query, applied: Query): boolean {
   return changed && draft.repos.length > 0 && draft.since !== '' && draft.until !== '' && draft.since <= draft.until;
 }
 
-export function Controls({ options, applied, dayPeriodMaxMonths, today, onApply }: ControlsProps) {
+export function Controls({ options, applied, dayPeriodMaxMonths, today, onApply, disabled }: ControlsProps) {
   const [draft, setDraft] = useState<Query>(applied);
   const change = (partial: Partial<Query>) => setDraft((previous) => ({ ...previous, ...partial }));
   const dayAllowed = isDayPeriodAllowed(draft, dayPeriodMaxMonths) && isDayPeriodAllowed(applied, dayPeriodMaxMonths);
@@ -110,12 +111,14 @@ export function Controls({ options, applied, dayPeriodMaxMonths, today, onApply 
   };
   return (
     <section className="controls" aria-label="Controls">
-      <Repositories options={options} repos={draft.repos} onChange={(repos) => change({ repos })} />
-      {applied.period === 'yearly' ? <Years draft={draft} today={today} onChange={change} /> : <Dates draft={draft} onChange={change} />}
-      <button className="apply" disabled={!isApplicable(draft, applied)} onClick={apply}>
-        Apply
-      </button>
-      <Periods applied={applied} dayAllowed={dayAllowed} maxMonths={dayPeriodMaxMonths} onPick={pickPeriod} />
+      <fieldset className="controls-body" disabled={disabled}>
+        <Repositories options={options} repos={draft.repos} onChange={(repos) => change({ repos })} />
+        {applied.period === 'yearly' ? <Years draft={draft} today={today} onChange={change} /> : <Dates draft={draft} onChange={change} />}
+        <button className="apply" disabled={!isApplicable(draft, applied)} onClick={apply}>
+          Apply
+        </button>
+        <Periods applied={applied} dayAllowed={dayAllowed} maxMonths={dayPeriodMaxMonths} onPick={pickPeriod} />
+      </fieldset>
     </section>
   );
 }

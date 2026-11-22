@@ -7,7 +7,7 @@ const today = new Date('2026-11-22T15:00:00Z');
 
 function controls(overrides: Partial<Query>): string {
   const applied: Query = { repos: ['app'], since: '2025-01-01', until: '2026-11-22', period: 'monthly', ...overrides };
-  return renderToStaticMarkup(<Controls options={[{ path: 'app', name: 'app' }]} applied={applied} dayPeriodMaxMonths={12} today={today} onApply={() => undefined} />);
+  return renderToStaticMarkup(<Controls options={[{ path: 'app', name: 'app' }]} applied={applied} dayPeriodMaxMonths={12} today={today} onApply={() => undefined} disabled={false} />);
 }
 
 test('yearPeriodShowsTwoYearSelectsInsteadOfDateInputs', () => {

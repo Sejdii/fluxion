@@ -49,17 +49,15 @@ function Body({ metric, dashboard }: { metric: DashboardMetric; dashboard: Dashb
 interface DetailProps {
   dashboard: Dashboard;
   metric: DashboardMetric;
-  error: string | null;
   onRefresh(): void;
 }
 
-export function Detail({ dashboard, metric, error, onRefresh }: DetailProps) {
+export function Detail({ dashboard, metric, onRefresh }: DetailProps) {
   return (
     <main className="detail">
       <div className="detail-head">
         <h1>{nameOf(metric)}</h1>
       </div>
-      {error ? <Alert message={error} /> : null}
       <Status dashboard={dashboard} onRefresh={onRefresh} />
       {dashboard.n === 0 ? <div className="empty">No merged PRs in this range</div> : <Body key={metric.id} metric={metric} dashboard={dashboard} />}
     </main>
