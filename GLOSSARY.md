@@ -52,6 +52,10 @@ _Avoid_: Participants
 A UTC calendar bucket (day, ISO week, month or year) that a merged PR belongs to by its merge date.
 _Avoid_: Interval, window
 
+**Range**:
+The span of dates, from a first day to a last day inclusive, that the dashboard analyses. A range can be chosen as whole calendar years, in which case a current year that has not ended runs only to today.
+_Avoid_: Window, date filter
+
 **Low sample**:
 A period with fewer than 5 merged PRs. Its median is shown but flagged, and its p90 is not shown, because with so few PRs the p90 is just the largest one.
 _Avoid_: Insufficient data, small n
