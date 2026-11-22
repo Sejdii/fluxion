@@ -1,6 +1,7 @@
 import type { PullRequestActivity } from './pull-request-source.js';
 import { commentCount, prSize, reviewerCount } from './discussion.js';
 import { reviewWaitingHours, totalReviewHours } from './review-time.js';
+import type { WorkSchedule } from './work-schedule.js';
 import { summarize } from './statistics.js';
 
 export interface MetricDefinition {
@@ -10,7 +11,7 @@ export interface MetricDefinition {
   statistics: readonly [string, ...string[]];
   unit?: string;
   perPullRequest: boolean;
-  calculate(pullRequests: PullRequestActivity[], statistic: string): number | null;
+  calculate(pullRequests: PullRequestActivity[], statistic: string, schedule?: WorkSchedule): number | null;
 }
 
 export interface MetricSummary {
@@ -36,7 +37,7 @@ const registry: readonly MetricDefinition[] = [
     statistics: ['median', 'p90'],
     unit: 'hours',
     perPullRequest: true,
-    calculate: (pullRequests, statistic) => summarize(pullRequests.map(reviewWaitingHours), statistic),
+    calculate: (pullRequests, statistic, schedule) => summarize(pullRequests.map((pullRequest) => reviewWaitingHours(pullRequest, schedule)), statistic),
   },
   {
     id: 'totalReviewTime',
@@ -45,7 +46,7 @@ const registry: readonly MetricDefinition[] = [
     statistics: ['median', 'p90'],
     unit: 'hours',
     perPullRequest: true,
-    calculate: (pullRequests, statistic) => summarize(pullRequests.map(totalReviewHours), statistic),
+    calculate: (pullRequests, statistic, schedule) => summarize(pullRequests.map((pullRequest) => totalReviewHours(pullRequest, schedule)), statistic),
   },
   {
     id: 'prSize',

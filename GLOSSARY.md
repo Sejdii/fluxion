@@ -30,6 +30,14 @@ _Avoid_: Time to first review, pickup time
 The time from ready for review to the merge of a merged PR.
 _Avoid_: Cycle time, lead time
 
+**Work schedule**:
+The working weekdays, the daily working hours and the time zone they are read in. It is optional: without one, review durations count every hour of the clock. It applies to the whole dashboard and to every pooled repository.
+_Avoid_: Business hours, office hours, calendar
+
+**Working time**:
+The part of a review duration that falls inside the work schedule. Time outside the working hours or on non-working days is skipped, and an activity outside working time counts as happening at the end of the last working hours before it. Review waiting time and total review time are measured in working time whenever a work schedule is set.
+_Avoid_: Business time
+
 **PRs merged**:
 The number of pull requests merged in a period. It counts by merge date.
 _Avoid_: Throughput

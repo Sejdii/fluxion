@@ -1,5 +1,5 @@
 import { Command, CommanderError } from '@commander-js/extra-typings';
-import { DataError, UsageError, listFamilies, listMetricsOf, type Explanation, type MetricRequest, type MetricResult } from '@fluxion/core';
+import { DataError, UsageError, listFamilies, parseWorkSchedule, listMetricsOf, type Explanation, type MetricRequest, type MetricResult, type WorkSchedule } from '@fluxion/core';
 import { formatExplanation, formatExplanationJson } from './format-explanation.js';
 import { formatJson } from './format-json.js';
 import { formatTable } from './format-table.js';
@@ -76,6 +76,12 @@ function parsePort(text: string): number {
   return port;
 }
 
+function workScheduleOf(options: { workDays?: string | undefined; workHours?: string | undefined; timezone?: string | undefined }): WorkSchedule | undefined {
+  const { workDays, workHours, timezone } = options;
+  if (workDays === undefined && workHours === undefined && timezone === undefined) return undefined;
+  return parseWorkSchedule({ days: workDays, hours: workHours, timeZone: timezone });
+}
+
 function addDashboard(program: Command, run: RunServe, io: CliIo): void {
   program
     .option('--port <n>', 'port for the dashboard (default: any free port)')
@@ -113,8 +119,12 @@ function addFamily(program: Command, family: string, runners: Runners, io: CliIo
     .option('--json', 'print JSON instead of a table')
     .option('--until <date>', 'last merge date, YYYY-MM-DD (default: today)')
     .option('--repos <paths...>', 'repositories to pool, as comma-separated relative paths (default: this repository, or all found below)')
+    .option('--work-days <days>', 'measure review times in working time on these days, e.g. mon-fri or mon,wed,fri (default with any work flag: mon-fri)')
+    .option('--work-hours <hours>', 'working hours as HH:MM-HH:MM (default with any work flag: 09:00-17:00)')
+    .option('--timezone <zone>', 'IANA time zone of the working hours (default with any work flag: this machine)')
     .action(async (metric, statistic, period, options) => {
-      const request = { family, metric, statistic, period, since: options.since, until: options.until };
+      const workSchedule = workScheduleOf(options);
+      const request = { family, metric, statistic, period, since: options.since, until: options.until, ...(workSchedule ? { workSchedule } : {}) };
       const result = await runners.metric(withRepos(request, options.repos));
       io.stdout(options.json ? formatJson({ metric, statistic, period }, result) : formatTable(metric, result.rows, result.unit));
     });

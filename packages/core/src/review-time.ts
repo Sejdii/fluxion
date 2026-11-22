@@ -1,4 +1,5 @@
 import { DELETED_ACCOUNT, isHumanReviewer } from './human-reviewer.js';
+import { workingHoursBetween, type WorkSchedule } from './work-schedule.js';
 import type { FetchedPullRequest, PullRequestActivity, ReviewActivity } from './pull-request-source.js';
 
 const MS_PER_HOUR = 60 * 60 * 1000;
@@ -26,14 +27,14 @@ export function firstResponseOf(pullRequest: FetchedPullRequest): FirstResponse 
   return pullRequest.mergedAt === null ? null : { kind: 'merge', at: pullRequest.mergedAt };
 }
 
-function hoursBetween(start: string, end: string): number {
-  return (Date.parse(end) - Date.parse(start)) / MS_PER_HOUR;
+function hoursBetween(start: string, end: string, schedule: WorkSchedule | undefined): number {
+  return schedule ? workingHoursBetween(schedule, start, end) : (Date.parse(end) - Date.parse(start)) / MS_PER_HOUR;
 }
 
-export function reviewWaitingHours(pullRequest: PullRequestActivity): number {
-  return hoursBetween(readyForReviewAt(pullRequest), firstHumanResponse(pullRequest)?.at ?? pullRequest.mergedAt);
+export function reviewWaitingHours(pullRequest: PullRequestActivity, schedule?: WorkSchedule): number {
+  return hoursBetween(readyForReviewAt(pullRequest), firstHumanResponse(pullRequest)?.at ?? pullRequest.mergedAt, schedule);
 }
 
-export function totalReviewHours(pullRequest: PullRequestActivity): number {
-  return hoursBetween(readyForReviewAt(pullRequest), pullRequest.mergedAt);
+export function totalReviewHours(pullRequest: PullRequestActivity, schedule?: WorkSchedule): number {
+  return hoursBetween(readyForReviewAt(pullRequest), pullRequest.mergedAt, schedule);
 }
