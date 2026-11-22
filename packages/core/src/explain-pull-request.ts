@@ -9,6 +9,7 @@ import {
   type RepositoryRef,
 } from './pull-request-source.js';
 import { firstResponseOf, readyForReviewAt, type FirstResponse } from './review-time.js';
+import { rounded } from './statistics.js';
 import { workingHoursBetween, type WorkSchedule } from './work-schedule.js';
 import { valuesOfPullRequest, type MetricValue } from './registry.js';
 
@@ -51,7 +52,7 @@ async function onlyRepository(finder: RepositoryFinder): Promise<RepositoryRef> 
 
 function workingHoursToFirstResponse(pullRequest: FetchedPullRequest, schedule: WorkSchedule): number | undefined {
   const response = firstResponseOf(pullRequest);
-  return response ? workingHoursBetween(schedule, readyForReviewAt(pullRequest), response.at) : undefined;
+  return response ? rounded(workingHoursBetween(schedule, readyForReviewAt(pullRequest), response.at)) : undefined;
 }
 
 export async function explainPullRequest(ports: ExplainPorts, request: ExplainRequest): Promise<Explanation> {

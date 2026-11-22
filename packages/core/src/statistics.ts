@@ -7,7 +7,7 @@ function meanOf(values: number[]): number {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-function rounded(value: number): number {
+export function rounded(value: number): number {
   return Math.round(value * DECIMALS) / DECIMALS;
 }
 

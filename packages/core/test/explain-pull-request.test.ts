@@ -144,7 +144,6 @@ test('showsADeletedAccountAsTheFirstResponder', async () => {
   expect(explanation.facts.firstResponse).toEqual({ kind: 'human', by: '(deleted account)', at: '2026-01-05T10:00:00Z' });
 });
 
-
 const schedule = { days: ['mon' as const, 'tue' as const], start: '09:00', end: '17:00', timeZone: 'UTC' };
 
 test('withAScheduleDurationsAndTheFirstResponseAreInWorkingTime', async () => {
@@ -171,4 +170,26 @@ test('withAScheduleAnUnmergedPullRequestWithoutAResponseHasNoWorkingHoursToIt', 
 
   expect(explanation.facts.firstResponse).toBeNull();
   expect('firstResponseWorkingHours' in explanation.facts).toBe(false);
+});
+
+test('workingHoursToFirstResponseAreRounded', async () => {
+  const pr = pullRequest({ comments: [{ actor: bob, at: '2026-01-05T09:20:00Z' }] });
+
+  const explanation = await explainWith({ number: 7, workSchedule: schedule }, pr);
+
+  expect(explanation.facts.firstResponseWorkingHours).toBe(0.33);
+});
+
+test('theMergeCountsAsTheFirstResponseForWorkingHours', async () => {
+  const explanation = await explainWith({ number: 7, workSchedule: schedule }, pullRequest());
+
+  expect(explanation.facts).toMatchObject({ firstResponse: { kind: 'merge' }, firstResponseWorkingHours: 8 });
+});
+
+test('aResponseOutsideWorkingTimeIsZeroWorkingHours', async () => {
+  const pr = pullRequest({ createdAt: '2026-01-10T08:00:00Z', mergedAt: '2026-01-10T18:00:00Z' });
+
+  const explanation = await explainWith({ number: 7, workSchedule: schedule }, pr);
+
+  expect(explanation.facts.firstResponseWorkingHours).toBe(0);
 });
