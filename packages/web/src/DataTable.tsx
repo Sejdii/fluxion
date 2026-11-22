@@ -1,6 +1,6 @@
 import type { DashboardMetric, DashboardRow } from '@fluxion/core';
 import { formatValue } from './format.js';
-import { isTotal } from './metrics.js';
+import { hasTotalAlongside, isTotal, nameOf } from './metrics.js';
 
 function periodOf(row: DashboardRow): string {
   return row.inProgress ? `${row.period} (in progress)` : row.period;
@@ -22,14 +22,14 @@ function DistributionRow({ row, unit, withTotal }: { row: DashboardRow; unit: st
       <td>{row.n}</td>
       <td>{formatValue(unit, row.values['median'])}</td>
       <td>{formatValue(unit, row.values['p90'])}</td>
-      {withTotal ? <td>{row.values['total']}</td> : null}
+      {withTotal ? <td>{formatValue(unit, row.values['total'] ?? 0)}</td> : null}
     </tr>
   );
 }
 
 export function DataTable({ metric }: { metric: DashboardMetric }) {
   const total = isTotal(metric);
-  const withTotal = !total && metric.tiles.current.values['total'] !== undefined;
+  const withTotal = !total && hasTotalAlongside(metric);
   return (
     <table className="data">
       <thead>
@@ -38,7 +38,7 @@ export function DataTable({ metric }: { metric: DashboardMetric }) {
           <th>n</th>
           {total ? null : <th>Median</th>}
           {total ? null : <th>p90</th>}
-          {withTotal ? <th>Comments</th> : null}
+          {withTotal ? <th>{nameOf(metric)}</th> : null}
         </tr>
       </thead>
       <tbody>

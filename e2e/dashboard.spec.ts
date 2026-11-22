@@ -221,3 +221,13 @@ test('otherMetricsKeepPrCountBarsAndNoCommentTotal', async ({ page, data }) => {
   await expect(page.getByRole('tooltip')).toContainText('n 5');
   await expect(page.getByRole('tooltip')).not.toContainText('Comments');
 });
+
+test('commentsShowsATotalTileAndLabelsItsBars', async ({ page, data }) => {
+  await data.setPullRequests(commentedPullRequests([1, 2, 3, 4, 5]));
+  await openDashboard(page);
+
+  await metricRow(page, 'Comments').click();
+
+  await expect(tile(page, 'Total')).toContainText('15');
+  await expect(page.getByText('Bars: total comments')).toBeVisible();
+});

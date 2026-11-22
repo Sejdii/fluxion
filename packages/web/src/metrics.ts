@@ -30,8 +30,8 @@ export function isTotal(metric: DashboardMetric): boolean {
   return metric.tiles.current.values['median'] === undefined && metric.tiles.current.values['total'] !== undefined;
 }
 
-function hasCommentTotal(metric: DashboardMetric): boolean {
-  return metric.id === 'comments' && metric.tiles.current.values['total'] !== undefined;
+export function hasTotalAlongside(metric: DashboardMetric): boolean {
+  return metric.tiles.current.values['median'] !== undefined && metric.tiles.current.values['total'] !== undefined;
 }
 
 export function headlineOf(metric: DashboardMetric, summary: DashboardSummary): number | null {
@@ -45,7 +45,7 @@ export function inRailOrder(metrics: DashboardMetric[]): DashboardMetric[] {
 
 export function chartPeriodsOf(metric: DashboardMetric): ChartPeriod[] {
   const total = isTotal(metric);
-  const commentTotals = hasCommentTotal(metric);
+  const commentTotals = hasTotalAlongside(metric);
   return metric.rows.map((row: DashboardRow) => ({
     period: row.period,
     n: row.n,

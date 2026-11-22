@@ -14,6 +14,7 @@ export interface ChartProps {
   kind: ChartKind;
   periods: ChartPeriod[];
   label: string;
+  barsLabel?: string;
   format(value: number | null): string;
 }
 

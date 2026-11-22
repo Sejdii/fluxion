@@ -59,7 +59,7 @@ const registry: readonly MetricDefinition[] = [
   {
     id: 'comments',
     family: 'pr',
-    description: 'Human comments per pull request',
+    description: 'Human comments per pull request; total is the sum over the period',
     statistics: ['median', 'p90', 'total'],
     perPullRequest: true,
     calculate: (pullRequests, statistic) => {

@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { changeOf, type ChangeContext, type Statistic } from './change.js';
 import { ChangeBadge } from './ChangeBadge.js';
 import { formatValue } from './format.js';
-import { isTotal } from './metrics.js';
+import { hasTotalAlongside, isTotal } from './metrics.js';
 
 interface TileProps {
   label: string;
@@ -37,6 +37,7 @@ function DistributionTiles({ metric, context }: { metric: DashboardMetric; conte
     <>
       <Tile label="Median" value={formatValue(metric.unit, values['median'])} statistic="median" context={context} />
       <Tile label="p90" value={formatValue(metric.unit, values['p90'])} statistic="p90" context={context} note={lowSample ? 'low sample' : null} />
+      {hasTotalAlongside(metric) ? <Tile label="Total" value={formatValue(metric.unit, values['total'])} statistic="total" context={context} /> : null}
       <Tile label="Merged PRs (n)" value={n.toLocaleString('en-US')} statistic="n" context={context} />
     </>
   );

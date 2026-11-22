@@ -60,7 +60,7 @@ function Plot({ kind, periods, max }: { kind: ChartProps['kind']; periods: Chart
   );
 }
 
-export function Chart({ kind, periods, label, format }: ChartProps) {
+export function Chart({ kind, periods, label, barsLabel, format }: ChartProps) {
   const [hovered, setHovered] = useState<number | null>(null);
   const max = Math.max(1, maxOf(periods));
   const active = hovered === null ? undefined : periods[hovered];
@@ -71,6 +71,7 @@ export function Chart({ kind, periods, label, format }: ChartProps) {
         <Plot kind={kind} periods={periods} max={max} />
         <Hover periods={periods} onHover={setHovered} />
       </svg>
+      {barsLabel ? <div className="chart-caption">{barsLabel}</div> : null}
       {active && hovered !== null ? <Tooltip period={active} format={format} showP90={kind === 'line'} leftPercent={(xOf(FRAME, periods.length, hovered) / FRAME.width) * 100} /> : null}
     </div>
   );
