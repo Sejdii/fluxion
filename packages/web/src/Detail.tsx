@@ -6,8 +6,6 @@ import { formatValue } from './format.js';
 import { chartPeriodsOf, isTotal, nameOf } from './metrics.js';
 import { Tiles } from './Tiles.js';
 
-const GOODHARTS_LAW_URL = 'https://lawsofsoftwareengineering.com/laws/goodharts-law/';
-
 function repositoriesNote(repositories: string[]): string {
   return repositories.length > 1 ? `pooled from ${repositories.length} repositories` : (repositories[0] ?? '');
 }
@@ -53,22 +51,13 @@ interface DetailProps {
 export function Detail({ dashboard, metric, error, onRefresh }: DetailProps) {
   return (
     <main className="detail">
-      <Head title={nameOf(metric)} />
+      <div className="detail-head">
+        <h1>{nameOf(metric)}</h1>
+      </div>
       {error ? <Alert message={error} /> : null}
       <Status dashboard={dashboard} onRefresh={onRefresh} />
       {dashboard.n === 0 ? <div className="empty">No merged PRs in this range</div> : <Body key={metric.id} metric={metric} />}
     </main>
-  );
-}
-
-function Head({ title }: { title: string }) {
-  return (
-    <div className="detail-head">
-      <h1>{title}</h1>
-      <a className="goodhart" href={GOODHARTS_LAW_URL} target="_blank" rel="noopener">
-        Goodhart’s law
-      </a>
-    </div>
   );
 }
 

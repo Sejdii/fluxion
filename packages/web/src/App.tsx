@@ -7,7 +7,18 @@ import { selectionKey } from './query.js';
 import { Rail } from './Rail.js';
 import { useDashboard } from './useDashboard.js';
 
+const GOODHARTS_LAW_URL = 'https://lawsofsoftwareengineering.com/laws/goodharts-law/';
 const LOADING_MESSAGE = 'Loading all six metrics…';
+
+function Header() {
+  return (
+    <header className="app-header">
+      <a className="goodhart" href={GOODHARTS_LAW_URL} target="_blank" rel="noopener">
+        Goodhart’s law
+      </a>
+    </header>
+  );
+}
 
 function Placeholder({ loading, error }: { loading: boolean; error: string | null }) {
   return (
@@ -33,9 +44,12 @@ export function App() {
     <Controls key={selectionKey(state.query)} options={state.options} applied={state.query} dayPeriodMaxMonths={state.dashboard.dayPeriodMaxMonths} onApply={state.apply} />
   ) : null;
   return (
-    <div className="shell">
-      <Rail metrics={metrics} selectedId={selectedId ?? metrics[0]?.id ?? ''} onSelect={setSelectedId} controls={controls} loading={state.loading} />
-      <DetailOrPlaceholder dashboard={state.dashboard} selectedId={selectedId} loading={state.loading} error={state.error} onRefresh={state.refresh} />
-    </div>
+    <>
+      <Header />
+      <div className="shell">
+        <Rail metrics={metrics} selectedId={selectedId ?? metrics[0]?.id ?? ''} onSelect={setSelectedId} controls={controls} loading={state.loading} />
+        <DetailOrPlaceholder dashboard={state.dashboard} selectedId={selectedId} loading={state.loading} error={state.error} onRefresh={state.refresh} />
+      </div>
+    </>
   );
 }
