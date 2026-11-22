@@ -1,8 +1,16 @@
 import type { Dashboard, RepositoryOption } from '@fluxion/core';
 import { queryString, type Query } from './query.js';
 
+const GATEWAY_TIMEOUTS = [502, 504];
+const LARGE_REPOSITORY_HINT = 'The repository is probably large and the request timed out. Try a shorter time range.';
+
+function failure(response: Response): Error {
+  return new Error(GATEWAY_TIMEOUTS.includes(response.status) ? `${LARGE_REPOSITORY_HINT} (HTTP ${response.status})` : `Request failed with HTTP ${response.status}`);
+}
+
 async function bodyOf<T>(response: Response): Promise<T> {
-  const body = (await response.json()) as T | { error: string };
+  const body = (await response.json().catch(() => undefined)) as T | { error: string } | undefined;
+  if (body === undefined) throw failure(response);
   if (typeof body === 'object' && body !== null && 'error' in body) throw new Error(String(body.error));
   return body as T;
 }

@@ -18,6 +18,8 @@ test('rateLimitOnFirstLoadShowsTheMessageWithTheResetTime', async ({ page, data 
   await page.goto('/');
 
   await expect(page.getByRole('alert')).toHaveText(RATE_LIMIT_MESSAGE);
+  await expect(page.getByLabel('From')).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible();
 });
 
 test('rateLimitAfterRefreshShowsOnlyTheErrorWithRetryAndEnabledControls', async ({ page, data }) => {
