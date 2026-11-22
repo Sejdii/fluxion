@@ -22,9 +22,16 @@ function lowSampleOf(metric: DashboardMetric): string | null {
   return metric.tiles.current.lowSample ? 'low sample' : null;
 }
 
+function headlineValue(metric: DashboardMetric): string {
+  return formatValue(metric.unit, headlineOf(metric, metric.tiles.current));
+}
+
+function changeText(metric: DashboardMetric): string | null {
+  return formatChange(metric) ?? lowSampleOf(metric);
+}
+
 function accessibleName(metric: DashboardMetric): string {
-  const value = formatValue(metric.unit, headlineOf(metric, metric.tiles.current));
-  return [nameOf(metric), value, formatChange(metric), lowSampleOf(metric)].filter(Boolean).join(', ');
+  return [nameOf(metric), headlineValue(metric), changeText(metric)].filter(Boolean).join(', ');
 }
 
 function RailRow({ metric, selected, onSelect, setRef }: RowProps) {
@@ -40,9 +47,9 @@ function RailRow({ metric, selected, onSelect, setRef }: RowProps) {
     >
       <span className="row-top">
         <span>{nameOf(metric)}</span>
-        <span className="value">{formatValue(metric.unit, headlineOf(metric, metric.tiles.current))}</span>
+        <span className="value">{headlineValue(metric)}</span>
       </span>
-      <span className="muted">{formatChange(metric) ?? lowSampleOf(metric)}</span>
+      <span className="muted">{changeText(metric)}</span>
       <Sparkline kind={isTotal(metric) ? 'bars' : 'line'} periods={chartPeriodsOf(metric)} />
     </div>
   );
@@ -56,17 +63,23 @@ function targetIndex(key: string, current: number, last: number): number | null 
   return null;
 }
 
-export function Rail({ metrics, selectedId, onSelect }: RailProps) {
-  const rows = useRef<(HTMLDivElement | null)[]>([]);
-  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
-    const current = metrics.findIndex((metric) => metric.id === selectedId);
-    const target = targetIndex(event.key, current, metrics.length - 1);
-    const next = target === null ? undefined : metrics[target];
+function keyHandler(props: RailProps, rows: { current: (HTMLDivElement | null)[] }) {
+  return (event: KeyboardEvent<HTMLDivElement>): void => {
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+    const current = props.metrics.findIndex((metric) => metric.id === props.selectedId);
+    const target = targetIndex(event.key, current, props.metrics.length - 1);
+    const next = target === null ? undefined : props.metrics[target];
     if (target === null || !next) return;
     event.preventDefault();
-    onSelect(next.id);
+    props.onSelect(next.id);
     rows.current[target]?.focus();
   };
+}
+
+export function Rail(props: RailProps) {
+  const { metrics, selectedId, onSelect } = props;
+  const rows = useRef<(HTMLDivElement | null)[]>([]);
+  const onKeyDown = keyHandler(props, rows);
   return (
     <aside className="rail">
       <div className="brand">fluxion</div>

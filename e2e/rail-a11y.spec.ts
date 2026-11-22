@@ -68,15 +68,24 @@ test('arrowKeysDoNotWrapAtTheEnds', async ({ page, data }) => {
   await expect(page.getByRole('option', { selected: true })).toHaveText(/Review waiting time/);
 });
 
-test('endJumpsToTheLastMetricAndHomeToTheFirst', async ({ page, data }) => {
+test('endJumpsToTheLastMetric', async ({ page, data }) => {
   await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
   await openDashboard(page);
   await page.getByRole('option', { selected: true }).focus();
 
   await page.keyboard.press('End');
+
   await expect(page.getByRole('option', { selected: true })).toHaveText(/Reviewers/);
+});
+
+test('homeJumpsToTheFirstMetric', async ({ page, data }) => {
+  await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
+  await openDashboard(page);
+  await page.getByRole('option', { name: /^PR size/ }).click();
+  await page.getByRole('option', { selected: true }).focus();
 
   await page.keyboard.press('Home');
+
   await expect(page.getByRole('option', { selected: true })).toHaveText(/Review waiting time/);
 });
 
