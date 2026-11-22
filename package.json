@@ -9,7 +9,7 @@
   "scripts": {
     "gate": "tsx scripts/gate.ts",
     "depcruise": "depcruise packages --config .dependency-cruiser.mjs",
-    "depcruise:graph": "depcruise packages --config .dependency-cruiser.mjs --output-type dot | dot -T svg -o dependency-graph.svg",
+    "depcruise:graph": "depcruise packages --config .dependency-cruiser.graph.mjs --output-type dot | dot -T svg -o dependency-graph.svg",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "fluxion": "tsx packages/cli/src/bin.ts",
