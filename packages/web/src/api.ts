@@ -12,6 +12,7 @@ async function bodyOf<T>(response: Response): Promise<T> {
   const body = (await response.json().catch(() => undefined)) as T | { error: string } | undefined;
   if (body === undefined) throw failure(response);
   if (typeof body === 'object' && body !== null && 'error' in body) throw new Error(String(body.error));
+  if (!response.ok) throw failure(response);
   return body as T;
 }
 

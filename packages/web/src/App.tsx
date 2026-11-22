@@ -1,5 +1,5 @@
 import type { Dashboard } from '@fluxion/core';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Controls } from './Controls.js';
 import { Alert, Detail } from './Detail.js';
 import { DetailSkeleton } from './Loading.js';
@@ -44,7 +44,9 @@ function DetailPane({ dashboard, selectedId, loading, error, onRefresh, onRetry 
 }
 
 function AppControls({ state }: { state: DashboardState & DashboardActions }) {
-  if (!state.query || !(state.dashboard || state.error)) return null;
+  const seen = useRef(false);
+  if (state.dashboard || state.error) seen.current = true;
+  if (!state.query || !seen.current) return null;
   const maxMonths = state.dashboard?.dayPeriodMaxMonths ?? FALLBACK_DAY_PERIOD_MAX_MONTHS;
   return <Controls key={selectionKey(state.query)} options={state.options} applied={state.query} dayPeriodMaxMonths={maxMonths} today={new Date()} onApply={state.apply} disabled={state.loading} />;
 }

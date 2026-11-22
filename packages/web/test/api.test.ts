@@ -27,3 +27,9 @@ test('jsonErrorBodiesKeepTheirMessage', async () => {
 
   await expect(fetchDashboard(query, false)).rejects.toThrow('bad range');
 });
+
+test('jsonFailuresWithoutAnErrorFieldStillFail', async () => {
+  respond(504, JSON.stringify({ message: 'timeout' }));
+
+  await expect(fetchDashboard(query, false)).rejects.toThrow(/shorter time range/);
+});
