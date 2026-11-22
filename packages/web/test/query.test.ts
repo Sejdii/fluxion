@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { applyChoice, defaultQuery, isDayPeriodAllowed, queryKey, queryString, type Query } from '../src/query.js';
+import { applyChoice, defaultQuery, isDayPeriodAllowed, queryKey, queryString, snapToYears, yearChoices, yearRange, yearsOf, type Query } from '../src/query.js';
 
 const today = new Date('2026-11-22T15:00:00Z');
 const MAX_MONTHS = 12;
@@ -54,4 +54,36 @@ test('applyingAShortRangeKeepsTheDayPeriod', () => {
 
 test('queryKeyIgnoresTheOrderOfRepositories', () => {
   expect(queryKey(query({ repos: ['b', 'a'] }))).toBe(queryKey(query({ repos: ['a', 'b'] })));
+});
+
+test('yearRangeRunsFromTheFirstOfTheFromYearToTheEndOfTheToYear', () => {
+  expect(yearRange(2020, 2022, today)).toEqual({ since: '2020-01-01', until: '2022-12-31' });
+});
+
+test('yearRangeEndsTodayWhenTheToYearIsTheCurrentYear', () => {
+  expect(yearRange(2025, 2026, today)).toEqual({ since: '2025-01-01', until: '2026-11-22' });
+});
+
+test('aSingleYearIsAWholeYearRange', () => {
+  expect(yearRange(2024, 2024, today)).toEqual({ since: '2024-01-01', until: '2024-12-31' });
+});
+
+test('snapToYearsCoversAPastRangeWithWholeYears', () => {
+  expect(snapToYears({ since: '2021-03-10', until: '2023-02-01' }, today)).toEqual({ since: '2021-01-01', until: '2023-12-31' });
+});
+
+test('snapToYearsStopsAtTodayWhenTheRangeReachesTheCurrentYear', () => {
+  expect(snapToYears({ since: '2025-12-01', until: '2026-11-22' }, today)).toEqual({ since: '2025-01-01', until: '2026-11-22' });
+});
+
+test('snapToYearsLeavesAWholeYearRangeUnchanged', () => {
+  expect(snapToYears({ since: '2024-01-01', until: '2024-12-31' }, today)).toEqual({ since: '2024-01-01', until: '2024-12-31' });
+});
+
+test('yearChoicesRunFromTheEarliestSupportedYearToTheCurrentYear', () => {
+  expect(yearChoices(today)).toEqual([2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026]);
+});
+
+test('yearsOfReadsTheYearsOfAnyRange', () => {
+  expect(yearsOf({ since: '2025-12-01', until: '2026-11-22' })).toEqual({ from: 2025, to: 2026 });
 });

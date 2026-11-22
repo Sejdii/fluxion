@@ -45,3 +45,28 @@ export function isDayPeriodAllowed(range: Range, maxMonths: number): boolean {
 export function applyChoice(query: Query, maxMonths: number): Query {
   return query.period === 'daily' && !isDayPeriodAllowed(query, maxMonths) ? { ...query, period: 'weekly' } : query;
 }
+
+const EARLIEST_SUPPORTED_YEAR = 2008;
+const YEAR_PREFIX_LENGTH = 4;
+
+export function yearChoices(today: Date): number[] {
+  return Array.from({ length: today.getUTCFullYear() - EARLIEST_SUPPORTED_YEAR + 1 }, (_, index) => EARLIEST_SUPPORTED_YEAR + index);
+}
+
+export function yearRange(fromYear: number, toYear: number, today: Date): Range {
+  const until = toYear >= today.getUTCFullYear() ? isoDate(today) : `${toYear}-12-31`;
+  return { since: `${fromYear}-01-01`, until };
+}
+
+function yearOf(date: string): number {
+  return Number(date.slice(0, YEAR_PREFIX_LENGTH));
+}
+
+export function yearsOf(range: Range): { from: number; to: number } {
+  return { from: yearOf(range.since), to: yearOf(range.until) };
+}
+
+export function snapToYears(range: Range, today: Date): Range {
+  const { from, to } = yearsOf(range);
+  return yearRange(from, to, today);
+}

@@ -41,7 +41,7 @@ export function App() {
   const [selectedId, setSelectedId] = useState<string>();
   const metrics = state.dashboard ? inRailOrder(state.dashboard.metrics) : [];
   const controls = state.query && state.dashboard ? (
-    <Controls key={selectionKey(state.query)} options={state.options} applied={state.query} dayPeriodMaxMonths={state.dashboard.dayPeriodMaxMonths} onApply={state.apply} />
+    <Controls key={selectionKey(state.query)} options={state.options} applied={state.query} dayPeriodMaxMonths={state.dashboard.dayPeriodMaxMonths} today={new Date()} onApply={state.apply} />
   ) : null;
   return (
     <>

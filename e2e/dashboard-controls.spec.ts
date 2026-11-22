@@ -113,3 +113,63 @@ test('repositoryTogglesStartCheckedAndApplyNeedsAtLeastOne', async ({ page, data
 
   await expect(page.getByRole('button', { name: 'Apply' })).toBeDisabled();
 });
+
+test('enteringYearSnapsTheRangeToWholeYearsAndAppliesImmediately', async ({ page, data }) => {
+  await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
+  await openDashboard(page);
+  const year = new Date().getUTCFullYear();
+
+  const request = page.waitForRequest((candidate) => candidate.url().includes(`since=${year - 1}-01-01`));
+  await period(page, 'Year').click();
+  await request;
+
+  await expect(period(page, 'Year')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('input[type="date"]')).toHaveCount(0);
+  await expect(page.getByRole('combobox', { name: 'From' })).toHaveValue(`${year - 1}`);
+  await expect(page.getByRole('combobox', { name: 'To' })).toHaveValue(`${year}`);
+});
+
+test('yearPickerApplyIsDisabledUntilTheYearsChange', async ({ page, data }) => {
+  await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
+  await openDashboard(page);
+  await period(page, 'Year').click();
+  const apply = page.getByRole('button', { name: 'Apply' });
+  await expect(apply).toBeDisabled();
+
+  await page.getByRole('combobox', { name: 'From' }).selectOption('2020');
+
+  await expect(apply).toBeEnabled();
+});
+
+test('yearPickerApplyIsDisabledWhenFromIsAfterTo', async ({ page, data }) => {
+  await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
+  await openDashboard(page);
+  await period(page, 'Year').click();
+
+  await page.getByRole('combobox', { name: 'To' }).selectOption('2019');
+
+  await expect(page.getByRole('button', { name: 'Apply' })).toBeDisabled();
+});
+
+test('enteringYearDiscardsUnappliedDateEditsAndShowsTheSnappedYears', async ({ page, data }) => {
+  await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
+  await openDashboard(page);
+  await page.getByLabel('From').fill('2020-05-05');
+
+  await period(page, 'Year').click();
+
+  await expect(page.getByRole('combobox', { name: 'From' })).toHaveValue(`${new Date().getUTCFullYear() - 1}`);
+  await expect(page.getByRole('button', { name: 'Apply' })).toBeDisabled();
+});
+
+test('leavingYearKeepsTheRangeAndBringsBackTheDateInputs', async ({ page, data }) => {
+  await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
+  await openDashboard(page);
+  await period(page, 'Year').click();
+  const year = new Date().getUTCFullYear();
+
+  await period(page, 'Month').click();
+
+  await expect(page.getByLabel('From')).toHaveValue(`${year - 1}-01-01`);
+  await expect(page.locator('input[type="date"]').nth(1)).toHaveValue(new Date().toISOString().slice(0, 10));
+});

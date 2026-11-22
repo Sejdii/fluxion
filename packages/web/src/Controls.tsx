@@ -1,6 +1,6 @@
 import type { RepositoryOption } from '@fluxion/core';
 import { useState } from 'react';
-import { applyChoice, isDayPeriodAllowed, type Period, type Query } from './query.js';
+import { applyChoice, isDayPeriodAllowed, snapToYears, yearChoices, yearRange, yearsOf, type Period, type Query, type Range } from './query.js';
 
 const PERIOD_CHOICES: { value: Period; label: string }[] = [
   { value: 'daily', label: 'Day' },
@@ -13,6 +13,7 @@ interface ControlsProps {
   options: RepositoryOption[];
   applied: Query;
   dayPeriodMaxMonths: number;
+  today: Date;
   onApply(query: Query): void;
 }
 
@@ -49,6 +50,29 @@ function Dates({ draft, onChange }: { draft: Query; onChange(change: Partial<Que
   );
 }
 
+function Years({ draft, today, onChange }: { draft: Query; today: Date; onChange(range: Range): void }) {
+  const years = yearChoices(today);
+  const { from, to } = yearsOf(draft);
+  const select = (label: string, value: number, rangeFor: (year: number) => Range) => (
+    <label>
+      <span className="label">{label}</span>
+      <select value={value} onChange={(event) => onChange(rangeFor(Number(event.target.value)))}>
+        {years.map((year) => (
+          <option key={year} value={year}>
+            {year}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+  return (
+    <div className="field dates">
+      {select('From', from, (year) => yearRange(year, to, today))}
+      {select('To', to, (year) => yearRange(from, year, today))}
+    </div>
+  );
+}
+
 function Periods({ applied, dayAllowed, maxMonths, onPick }: { applied: Query; dayAllowed: boolean; maxMonths: number; onPick(period: Period): void }) {
   return (
     <div className="field">
@@ -70,19 +94,28 @@ function isApplicable(draft: Query, applied: Query): boolean {
   return changed && draft.repos.length > 0 && draft.since !== '' && draft.until !== '' && draft.since <= draft.until;
 }
 
-export function Controls({ options, applied, dayPeriodMaxMonths, onApply }: ControlsProps) {
+export function Controls({ options, applied, dayPeriodMaxMonths, today, onApply }: ControlsProps) {
   const [draft, setDraft] = useState<Query>(applied);
   const change = (partial: Partial<Query>) => setDraft((previous) => ({ ...previous, ...partial }));
   const dayAllowed = isDayPeriodAllowed(draft, dayPeriodMaxMonths) && isDayPeriodAllowed(applied, dayPeriodMaxMonths);
   const apply = () => onApply(applyChoice({ ...draft, period: applied.period }, dayPeriodMaxMonths));
+  const pickPeriod = (period: Period) => {
+    if (period === 'yearly') {
+      const snapped = snapToYears(applied, today);
+      change(snapped);
+      onApply({ ...applied, ...snapped, period });
+    } else {
+      onApply({ ...applied, period });
+    }
+  };
   return (
     <section className="controls" aria-label="Controls">
       <Repositories options={options} repos={draft.repos} onChange={(repos) => change({ repos })} />
-      <Dates draft={draft} onChange={change} />
+      {applied.period === 'yearly' ? <Years draft={draft} today={today} onChange={change} /> : <Dates draft={draft} onChange={change} />}
       <button className="apply" disabled={!isApplicable(draft, applied)} onClick={apply}>
         Apply
       </button>
-      <Periods applied={applied} dayAllowed={dayAllowed} maxMonths={dayPeriodMaxMonths} onPick={(period) => onApply({ ...applied, period })} />
+      <Periods applied={applied} dayAllowed={dayAllowed} maxMonths={dayPeriodMaxMonths} onPick={pickPeriod} />
     </section>
   );
 }
