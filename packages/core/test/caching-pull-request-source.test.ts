@@ -137,3 +137,27 @@ test('shouldFetchASinglePullRequestFromTheSource', async () => {
 
   expect(fetched?.number).toBe(1);
 });
+
+test('inMemorySourceCanBeToldToFailWithADataError', async () => {
+  const source = new InMemoryPullRequestSource();
+  source.failWith(new DataError('rate limit'));
+
+  await expect(source.mergedPullRequests(repository, range)).rejects.toBeInstanceOf(DataError);
+});
+
+test('inMemorySourceRecoversWhenTheFailureIsCleared', async () => {
+  const source = new InMemoryPullRequestSource();
+  source.failWith(new DataError('rate limit'));
+  source.failWith(null);
+
+  await expect(source.mergedPullRequests(repository, range)).resolves.toEqual([]);
+});
+
+test('inMemorySourceCountsTheFetchesItServes', async () => {
+  const source = new InMemoryPullRequestSource();
+
+  await source.mergedPullRequests(repository, range);
+  await source.mergedPullRequests(repository, range);
+
+  expect(source.fetches).toBe(2);
+});

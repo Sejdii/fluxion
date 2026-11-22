@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from 'vitest';
-import { DataError, UsageError, type Dashboard } from '@fluxion/core';
+import { DataError, UsageError, type Dashboard, type RepositoryOption } from '@fluxion/core';
 import { createDashboardApp, type DashboardQuery, type DashboardUseCase } from '../src/http/dashboard-app.js';
 
 const dashboard: Dashboard = {
@@ -11,8 +11,12 @@ const dashboard: Dashboard = {
   n: 0,
   fetchedAt: '2026-03-20T10:00:00.000Z',
   lowSampleThreshold: 5,
+  dayPeriodMaxMonths: 12,
+  repositories: [],
   metrics: [],
 };
+
+const options: RepositoryOption[] = [{ path: 'app', name: 'acme/app' }];
 
 interface Harness {
   queries: DashboardQuery[];
@@ -31,6 +35,7 @@ function harness(query: DashboardUseCase['query'] = () => Promise.resolve(dashbo
       state.refreshes += 1;
       return Promise.resolve();
     },
+    repositories: () => Promise.resolve(options),
   };
   const app = createDashboardApp(useCase, staticRoot);
   return Object.assign(state, { request: (path: string) => Promise.resolve(app.request(path)) });
@@ -107,6 +112,14 @@ test('apiPrWithoutRefreshKeepsTheServerCache', async () => {
   await api.request('/api/pr?period=monthly');
 
   expect(api.refreshes).toBe(0);
+});
+
+test('apiRepositoriesListsTheStartingSelection', async () => {
+  const api = harness();
+
+  const response = await api.request('/api/repositories');
+
+  expect([response.status, await response.json()]).toEqual([200, { repositories: options }]);
 });
 
 test('rootServesTheStaticPageFromTheAbsoluteRoot', async () => {

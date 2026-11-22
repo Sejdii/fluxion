@@ -1,15 +1,16 @@
 import { isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { GithubCliExecutor, GitHubPullRequestSource, findRepositories } from '@fluxion/adapters';
+import { GithubCliExecutor, GitHubPullRequestSource, findRepositories, locateRepositories } from '@fluxion/adapters';
 import {
   CachingPullRequestSource,
   InMemoryCache,
   InMemoryPullRequestSource,
-  InMemoryRepositoryFinder,
   explainPullRequest,
   queryDashboard,
   queryMetric,
   type MetricPorts,
+  type RepositoryOption,
+  displayName,
   type PullRequestSource,
   UsageError,
   type RepositoryFinder,
@@ -25,9 +26,15 @@ function cachingSource(source: PullRequestSource): CachingPullRequestSource {
   return new CachingPullRequestSource(source, new InMemoryCache());
 }
 
-function dashboardUseCase(pullRequests: CachingPullRequestSource, repositories: (repos: string[] | undefined) => RepositoryFinder, now: () => Date, startingRepos: string[] | undefined): DashboardUseCase {
+interface RepositorySelection {
+  finder(repos: string[] | undefined): RepositoryFinder;
+  options(): Promise<RepositoryOption[]>;
+}
+
+function dashboardUseCase(pullRequests: CachingPullRequestSource, selection: RepositorySelection, now: () => Date, startingRepos: string[] | undefined): DashboardUseCase {
   return {
-    query: ({ repos, ...query }) => queryDashboard({ pullRequests, repositories: repositories(repos ?? startingRepos) }, { family: 'pr', ...query }, now()),
+    repositories: selection.options,
+    query: ({ repos, ...query }) => queryDashboard({ pullRequests, repositories: selection.finder(repos ?? startingRepos) }, { family: 'pr', ...query }, now()),
     refresh: () => pullRequests.clear(),
   };
 }
@@ -38,9 +45,13 @@ export interface InMemoryDashboard {
   refresh(): Promise<void>;
 }
 
-export function startInMemoryDashboard(finder: InMemoryRepositoryFinder, now: () => Date): InMemoryDashboard {
+export function startInMemoryDashboard(finder: RepositoryFinder, now: () => Date): InMemoryDashboard {
   const source = new InMemoryPullRequestSource();
-  const useCase = dashboardUseCase(cachingSource(source), () => finder, now, undefined);
+  const options = async (): Promise<RepositoryOption[]> => (await finder.find()).map((repository) => ({ path: repository.name, name: displayName(repository) }));
+  const selecting = (selected: string[] | undefined): RepositoryFinder => ({
+    find: async () => (await finder.find()).filter((repository) => !selected || selected.includes(repository.name)),
+  });
+  const useCase = dashboardUseCase(cachingSource(source), { finder: selecting, options }, now, undefined);
   return { source, server: startServer(createDashboardApp(useCase, WEB_ROOT), FREE_PORT), refresh: () => useCase.refresh() };
 }
 
@@ -60,7 +71,10 @@ export function createRunners(directory: string, now: () => Date): Runners {
     metric: ({ repos, ...request }) => queryMetric(portsFor(repos), request, now()),
     explain: ({ repos, number }) => explainPullRequest(portsFor(repos), { number }),
     serve: async ({ port, open, repos }) => {
-      const app = createDashboardApp(dashboardUseCase(pullRequests, (selected) => finderFor(withinDirectory(directory, selected)), now, repos), WEB_ROOT);
+      const options = async (): Promise<RepositoryOption[]> =>
+        (await locateRepositories(directory, repos)).map(({ path, repository }) => ({ path, name: displayName(repository) }));
+      const finder = (selected: string[] | undefined): RepositoryFinder => finderFor(withinDirectory(directory, selected));
+      const app = createDashboardApp(dashboardUseCase(pullRequests, { finder, options }, now, repos), WEB_ROOT);
       const { url } = await startServer(app, port ?? FREE_PORT);
       if (open) openBrowser(url);
       return url;

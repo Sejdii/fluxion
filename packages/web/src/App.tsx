@@ -1,26 +1,41 @@
 import type { Dashboard } from '@fluxion/core';
 import { useState } from 'react';
-import { Detail } from './Detail.js';
+import { Controls } from './Controls.js';
+import { Alert, Detail } from './Detail.js';
 import { inRailOrder } from './metrics.js';
+import { selectionKey } from './query.js';
 import { Rail } from './Rail.js';
 import { useDashboard } from './useDashboard.js';
 
-function Loaded({ dashboard }: { dashboard: Dashboard }) {
-  const metrics = inRailOrder(dashboard.metrics);
-  const [selectedId, setSelectedId] = useState(metrics[0]?.id);
-  const selected = metrics.find((metric) => metric.id === selectedId) ?? metrics[0];
-  if (!selected) return null;
+const LOADING_MESSAGE = 'Loading all six metrics…';
+
+function Placeholder({ loading, error }: { loading: boolean; error: string | null }) {
   return (
-    <div className="shell">
-      <Rail metrics={metrics} selectedId={selected.id} onSelect={setSelectedId} />
-      <Detail dashboard={dashboard} metric={selected} />
-    </div>
+    <main className="detail">
+      {loading ? <div className="loading" aria-busy="true">{LOADING_MESSAGE}</div> : null}
+      {error ? <Alert message={error} /> : null}
+    </main>
   );
+}
+
+function DetailOrPlaceholder({ dashboard, selectedId, loading, error, onRefresh }: { dashboard: Dashboard | null; selectedId: string | undefined; loading: boolean; error: string | null; onRefresh(): void }) {
+  const metrics = dashboard ? inRailOrder(dashboard.metrics) : [];
+  const selected = metrics.find((metric) => metric.id === selectedId) ?? metrics[0];
+  if (loading || !dashboard || !selected) return <Placeholder loading={loading} error={error} />;
+  return <Detail dashboard={dashboard} metric={selected} error={error} onRefresh={onRefresh} />;
 }
 
 export function App() {
   const state = useDashboard();
-  if (state.status === 'loading') return <div className="loading" aria-busy="true">Loading all six metrics…</div>;
-  if (state.status === 'error') return <div className="error" role="alert">{state.message}</div>;
-  return <Loaded dashboard={state.dashboard} />;
+  const [selectedId, setSelectedId] = useState<string>();
+  const metrics = state.dashboard ? inRailOrder(state.dashboard.metrics) : [];
+  const controls = state.query && state.dashboard ? (
+    <Controls key={selectionKey(state.query)} options={state.options} applied={state.query} dayPeriodMaxMonths={state.dashboard.dayPeriodMaxMonths} onApply={state.apply} />
+  ) : null;
+  return (
+    <div className="shell">
+      <Rail metrics={metrics} selectedId={selectedId ?? metrics[0]?.id ?? ''} onSelect={setSelectedId} controls={controls} loading={state.loading} />
+      <DetailOrPlaceholder dashboard={state.dashboard} selectedId={selectedId} loading={state.loading} error={state.error} onRefresh={state.refresh} />
+    </div>
+  );
 }

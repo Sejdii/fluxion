@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, expect, test } from 'vitest';
-import { findRepositories } from '../src/git/find-repositories.js';
+import { findRepositories, locateRepositories } from '../src/git/find-repositories.js';
 
 let root: string;
 
@@ -119,4 +119,21 @@ test('twoClonesOfTheSameRepositoryArePooledOnce', async () => {
   const result = await findRepositories(root);
 
   expect(result).toEqual([{ host: 'github', owner: 'acme', name: 'app' }]);
+});
+
+test('locatingRepositoriesPairsEachWithItsPathRelativeToTheFolder', async () => {
+  repository('one');
+  repository('group/two');
+
+  const result = await locateRepositories(root);
+
+  expect(result.map((located) => located.path)).toEqual(['group/two', 'one']);
+});
+
+test('locatingInsideARepositoryReturnsTheCurrentFolderPath', async () => {
+  repository('app');
+
+  const result = await locateRepositories(join(root, 'app'));
+
+  expect(result.map((located) => located.path)).toEqual(['.']);
 });

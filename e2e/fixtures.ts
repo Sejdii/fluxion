@@ -6,6 +6,8 @@ export const repository: RepositoryRef = { host: 'github', owner: 'acme', name: 
 
 export interface DashboardData {
   setPullRequests(pullRequests: FetchedPullRequest[]): Promise<void>;
+  failWith(error: Error | null): void;
+  fetches(): number;
 }
 
 interface WorkerFixtures {
@@ -36,7 +38,9 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       await server.dashboard.refresh();
     };
     await setPullRequests([]);
-    await use({ setPullRequests });
+    const failWith = (error: Error | null): void => server.dashboard.source.failWith(error);
+    await use({ setPullRequests, failWith, fetches: () => server.dashboard.source.fetches });
+    failWith(null);
   },
 });
 

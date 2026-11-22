@@ -1,48 +1,13 @@
 import type { Page } from '@playwright/test';
 import type { FetchedPullRequest } from '../packages/core/src/index.js';
 import { expect, test } from './fixtures.js';
+import { earlierPullRequests, metricRow, openDashboard, recentPullRequests } from './pull-requests.js';
 
-const HOUR_MS = 60 * 60 * 1000;
-const DAY_MS = 24 * HOUR_MS;
-const EARLIER_RANGE_AGO_MS = 400 * DAY_MS;
 const GOODHARTS_LAW_URL = 'https://lawsofsoftwareengineering.com/laws/goodharts-law/';
 const IN_PROGRESS_PERIOD = /^\d{4}-\d{2} \(in progress\)$/;
 
-function pullRequest(number: number, mergedAgoMs: number, lines: number): FetchedPullRequest {
-  const mergedAt = new Date(Date.now() - mergedAgoMs);
-  return {
-    number,
-    author: { login: 'ann', isBot: false },
-    createdAt: new Date(mergedAt.getTime() - HOUR_MS).toISOString(),
-    mergedAt: mergedAt.toISOString(),
-    additions: lines,
-    deletions: 0,
-    draftEvents: [],
-    comments: [],
-    reviewComments: [],
-    reviews: [],
-  };
-}
-
-function recentPullRequests(sizes: number[]): FetchedPullRequest[] {
-  return sizes.map((lines, index) => pullRequest(index + 1, HOUR_MS, lines));
-}
-
-function earlierPullRequests(sizes: number[]): FetchedPullRequest[] {
-  return sizes.map((lines, index) => pullRequest(100 + index, EARLIER_RANGE_AGO_MS, lines));
-}
-
-function metricRow(page: Page, name: string) {
-  return page.getByRole('option', { name: new RegExp(`^${name}`) });
-}
-
 function tile(page: Page, label: string) {
   return page.getByRole('group', { name: label });
-}
-
-async function openDashboard(page: Page): Promise<void> {
-  await page.goto('/');
-  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 }
 
 test('railListsAllSixMetrics', async ({ page, data }) => {

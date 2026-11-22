@@ -1,4 +1,5 @@
 import type { DashboardMetric } from '@fluxion/core';
+import type { ReactNode } from 'react';
 import { Sparkline } from './chart/index.js';
 import { formatChange, formatValue } from './format.js';
 import { chartPeriodsOf, headlineOf, isTotal, nameOf } from './metrics.js';
@@ -7,6 +8,8 @@ interface RailProps {
   metrics: DashboardMetric[];
   selectedId: string;
   onSelect(id: string): void;
+  controls: ReactNode;
+  loading: boolean;
 }
 
 function RailRow({ metric, selected, onSelect }: { metric: DashboardMetric; selected: boolean; onSelect(): void }) {
@@ -24,11 +27,23 @@ function RailRow({ metric, selected, onSelect }: { metric: DashboardMetric; sele
   );
 }
 
-export function Rail({ metrics, selectedId, onSelect }: RailProps) {
+function Skeleton() {
+  return (
+    <div className="metric-list" aria-hidden="true">
+      {[0, 1, 2, 3, 4, 5].map((slot) => (
+        <div key={slot} className="row skeleton" />
+      ))}
+    </div>
+  );
+}
+
+export function Rail({ metrics, selectedId, onSelect, controls, loading }: RailProps) {
   return (
     <aside className="rail">
       <div className="brand">fluxion</div>
-      <div role="listbox" aria-label="Metrics" className="metric-list">
+      {controls}
+      {loading ? <Skeleton /> : null}
+      <div role="listbox" aria-label="Metrics" className="metric-list" hidden={loading}>
         {metrics.map((metric) => (
           <RailRow key={metric.id} metric={metric} selected={metric.id === selectedId} onSelect={() => onSelect(metric.id)} />
         ))}
