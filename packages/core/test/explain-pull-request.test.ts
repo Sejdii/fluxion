@@ -5,6 +5,7 @@ import {
   InMemoryRepositoryFinder,
   explainPullRequest,
   type Actor,
+  type ExplainRequest,
   type FetchedPullRequest,
   type RepositoryRef,
 } from '../src/index.js';
@@ -31,9 +32,13 @@ function pullRequest(overrides: Partial<FetchedPullRequest> = {}): FetchedPullRe
 }
 
 function explain(number: number, ...pullRequests: FetchedPullRequest[]) {
+  return explainWith({ number }, ...pullRequests);
+}
+
+function explainWith(request: ExplainRequest, ...pullRequests: FetchedPullRequest[]) {
   const source = new InMemoryPullRequestSource();
   source.set(repository, pullRequests);
-  return explainPullRequest({ pullRequests: source, repositories: new InMemoryRepositoryFinder(repository) }, { number });
+  return explainPullRequest({ pullRequests: source, repositories: new InMemoryRepositoryFinder(repository) }, request);
 }
 
 test('explainsEveryMetricValueOfAMergedPullRequest', async () => {
@@ -139,3 +144,52 @@ test('showsADeletedAccountAsTheFirstResponder', async () => {
   expect(explanation.facts.firstResponse).toEqual({ kind: 'human', by: '(deleted account)', at: '2026-01-05T10:00:00Z' });
 });
 
+const schedule = { days: ['mon' as const, 'tue' as const], start: '09:00', end: '17:00', timeZone: 'UTC' };
+
+test('withAScheduleDurationsAndTheFirstResponseAreInWorkingTime', async () => {
+  const pr = pullRequest({ comments: [{ actor: bob, at: '2026-01-05T10:00:00Z' }] });
+
+  const explanation = await explainWith({ number: 7, workSchedule: schedule }, pr);
+
+  expect(explanation).toMatchObject({
+    workSchedule: schedule,
+    facts: { readyForReviewAt: '2026-01-05T08:00:00Z', firstResponseWorkingHours: 1, mergedAt: '2026-01-05T18:00:00Z' },
+  });
+  expect(explanation.values).toContainEqual({ metric: 'totalReviewTime', unit: 'hours', value: 8 });
+});
+
+test('withoutAScheduleTheExplanationCarriesNoWorkingTimeFields', async () => {
+  const explanation = await explain(7, pullRequest());
+
+  expect('workSchedule' in explanation).toBe(false);
+  expect('firstResponseWorkingHours' in explanation.facts).toBe(false);
+});
+
+test('withAScheduleAnUnmergedPullRequestWithoutAResponseHasNoWorkingHoursToIt', async () => {
+  const explanation = await explainWith({ number: 7, workSchedule: schedule }, pullRequest({ mergedAt: null }));
+
+  expect(explanation.facts.firstResponse).toBeNull();
+  expect('firstResponseWorkingHours' in explanation.facts).toBe(false);
+});
+
+test('workingHoursToFirstResponseAreRounded', async () => {
+  const pr = pullRequest({ comments: [{ actor: bob, at: '2026-01-05T09:20:00Z' }] });
+
+  const explanation = await explainWith({ number: 7, workSchedule: schedule }, pr);
+
+  expect(explanation.facts.firstResponseWorkingHours).toBe(0.33);
+});
+
+test('theMergeCountsAsTheFirstResponseForWorkingHours', async () => {
+  const explanation = await explainWith({ number: 7, workSchedule: schedule }, pullRequest());
+
+  expect(explanation.facts).toMatchObject({ firstResponse: { kind: 'merge' }, firstResponseWorkingHours: 8 });
+});
+
+test('aResponseOutsideWorkingTimeIsZeroWorkingHours', async () => {
+  const pr = pullRequest({ createdAt: '2026-01-10T08:00:00Z', mergedAt: '2026-01-10T18:00:00Z' });
+
+  const explanation = await explainWith({ number: 7, workSchedule: schedule }, pr);
+
+  expect(explanation.facts.firstResponseWorkingHours).toBe(0);
+});

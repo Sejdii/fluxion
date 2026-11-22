@@ -69,7 +69,7 @@ export function createRunners(directory: string, now: () => Date): Runners {
   const portsFor = (repos: string[] | undefined): MetricPorts => ({ pullRequests, repositories: finderFor(repos) });
   return {
     metric: ({ repos, ...request }) => queryMetric(portsFor(repos), request, now()),
-    explain: ({ repos, number }) => explainPullRequest(portsFor(repos), { number }),
+    explain: ({ repos, ...request }) => explainPullRequest(portsFor(repos), request),
     serve: async ({ port, open, repos }) => {
       const options = async (): Promise<RepositoryOption[]> =>
         (await locateRepositories(directory, repos)).map(({ path, repository }) => ({ path, name: displayName(repository) }));

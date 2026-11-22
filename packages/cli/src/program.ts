@@ -17,6 +17,7 @@ export type RunMetric = (request: CliMetricRequest) => Promise<MetricResult>;
 
 export interface ExplainRequest {
   number: number;
+  workSchedule?: WorkSchedule;
   repos?: string[];
 }
 
@@ -36,6 +37,9 @@ export interface Runners {
   serve: RunServe;
 }
 
+const WORK_DAYS_HELP = 'measure review times in working time on these days, e.g. mon-fri or mon,wed,fri (default with any work flag: mon-fri)';
+const WORK_HOURS_HELP = 'working hours as HH:MM-HH:MM (default with any work flag: 09:00-17:00)';
+const TIMEZONE_HELP = 'IANA time zone of the working hours (default with any work flag: this machine)';
 const MAX_PORT = 65535;
 export const EXIT_OK = 0;
 export const EXIT_USAGE = 1;
@@ -101,9 +105,14 @@ function addExplain(family: Command, run: RunExplain, io: CliIo): void {
     .argument('<number>', 'pull request number')
     .option('--json', 'print JSON instead of text')
     .option('--repos <paths...>', 'the one repository to use, as a relative path')
+    .option('--work-days <days>', WORK_DAYS_HELP)
+    .option('--work-hours <hours>', WORK_HOURS_HELP)
+    .option('--timezone <zone>', TIMEZONE_HELP)
     .action(async (number, options) => {
       const paths = singleRepository(options.repos);
-      const explanation = await run(withRepos({ number: parsePullRequestNumber(number) }, paths));
+      const workSchedule = workScheduleOf(options);
+      const request = { number: parsePullRequestNumber(number), ...(workSchedule ? { workSchedule } : {}) };
+      const explanation = await run(withRepos(request, paths));
       io.stdout(options.json ? formatExplanationJson(explanation) : formatExplanation(explanation));
     });
 }
@@ -119,9 +128,9 @@ function addFamily(program: Command, family: string, runners: Runners, io: CliIo
     .option('--json', 'print JSON instead of a table')
     .option('--until <date>', 'last merge date, YYYY-MM-DD (default: today)')
     .option('--repos <paths...>', 'repositories to pool, as comma-separated relative paths (default: this repository, or all found below)')
-    .option('--work-days <days>', 'measure review times in working time on these days, e.g. mon-fri or mon,wed,fri (default with any work flag: mon-fri)')
-    .option('--work-hours <hours>', 'working hours as HH:MM-HH:MM (default with any work flag: 09:00-17:00)')
-    .option('--timezone <zone>', 'IANA time zone of the working hours (default with any work flag: this machine)')
+    .option('--work-days <days>', WORK_DAYS_HELP)
+    .option('--work-hours <hours>', WORK_HOURS_HELP)
+    .option('--timezone <zone>', TIMEZONE_HELP)
     .action(async (metric, statistic, period, options) => {
       const workSchedule = workScheduleOf(options);
       const request = { family, metric, statistic, period, since: options.since, until: options.until, ...(workSchedule ? { workSchedule } : {}) };
