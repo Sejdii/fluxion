@@ -60,3 +60,15 @@ test('nonNumericPortExitsWith1', async () => {
 
   expect(outcome.code).toBe(1);
 });
+
+test('workFlagsSetTheInitialDashboardSchedule', async () => {
+  const outcome = await run(['--work-days', 'mon,wed', '--work-hours', '07:00-18:00', '--timezone', 'UTC']);
+
+  expect(outcome.served).toEqual([{ open: true, workSchedule: { days: ['mon', 'wed'], start: '07:00', end: '18:00', timeZone: 'UTC' } }]);
+});
+
+test('invalidWorkFlagsExitWith1BeforeStarting', async () => {
+  const outcome = await run(['--work-hours', '18:00-07:00']);
+
+  expect(outcome).toMatchObject({ code: 1, served: [], stderr: 'error: Work hours "18:00-07:00" must start before they end\n' });
+});

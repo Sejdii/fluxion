@@ -4,6 +4,7 @@ import { bucketsOf } from './periods.js';
 import { displayName, type DateRange, type PullRequestActivity } from './pull-request-source.js';
 import { checkPeriod, pooledPullRequests, type MetricPorts } from './query-metric.js';
 import { DAY_PERIOD_MAX_MONTHS, exceedsDayPeriodLimit, previousRangeOf, resolveRange } from './range.js';
+import type { WorkSchedule } from './work-schedule.js';
 import { definitionsOf, type MetricDefinition } from './registry.js';
 
 export interface DashboardRequest {
@@ -11,6 +12,7 @@ export interface DashboardRequest {
   period: string;
   since?: string | undefined;
   until?: string | undefined;
+  workSchedule?: WorkSchedule | undefined;
 }
 
 export interface DashboardSummary {
@@ -39,12 +41,13 @@ export interface Dashboard {
   lowSampleThreshold: number;
   dayPeriodMaxMonths: number;
   repositories: string[];
+  workSchedule?: WorkSchedule;
   metrics: DashboardMetric[];
 }
 
-function summaryOf(definition: MetricDefinition, pullRequests: PullRequestActivity[]): DashboardSummary {
+function summaryOf(definition: MetricDefinition, pullRequests: PullRequestActivity[], schedule: WorkSchedule | undefined): DashboardSummary {
   const n = pullRequests.length;
-  const values = Object.fromEntries(definition.statistics.map((statistic) => [statistic, definition.calculate(pullRequests, statistic)]));
+  const values = Object.fromEntries(definition.statistics.map((statistic) => [statistic, definition.calculate(pullRequests, statistic, schedule)]));
   return definition.perPullRequest && isLowSample(n) ? { n, values, lowSample: true } : { n, values };
 }
 
@@ -53,14 +56,15 @@ interface Pools {
   range: DateRange;
   current: PullRequestActivity[];
   previous: PullRequestActivity[];
+  workSchedule: WorkSchedule | undefined;
 }
 
 function metricOf(definition: MetricDefinition, pools: Pools, now: Date): DashboardMetric {
   const rows = bucketsOf(pools.period, pools.range, pools.current, now).map((bucket) => {
-    const row: DashboardRow = { period: bucket.label, ...summaryOf(definition, bucket.pullRequests) };
+    const row: DashboardRow = { period: bucket.label, ...summaryOf(definition, bucket.pullRequests, pools.workSchedule) };
     return bucket.inProgress ? { ...row, inProgress: true as const } : row;
   });
-  const tiles = { current: summaryOf(definition, pools.current), previous: summaryOf(definition, pools.previous) };
+  const tiles = { current: summaryOf(definition, pools.current, pools.workSchedule), previous: summaryOf(definition, pools.previous, pools.workSchedule) };
   return definition.unit ? { id: definition.id, unit: definition.unit, rows, tiles } : { id: definition.id, rows, tiles };
 }
 
@@ -76,7 +80,7 @@ export async function queryDashboard(ports: MetricPorts, request: DashboardReque
   const repositories = await ports.repositories.find();
   const current = await pooledPullRequests(ports.pullRequests, repositories, range);
   const previous = await pooledPullRequests(ports.pullRequests, repositories, previousRange);
-  const metrics = definitions.map((definition) => metricOf(definition, { period: request.period, range, current, previous }, now));
+  const metrics = definitions.map((definition) => metricOf(definition, { period: request.period, range, current, previous, workSchedule: request.workSchedule }, now));
   return {
     range,
     previousRange,
@@ -85,6 +89,7 @@ export async function queryDashboard(ports: MetricPorts, request: DashboardReque
     lowSampleThreshold: LOW_SAMPLE_THRESHOLD,
     dayPeriodMaxMonths: DAY_PERIOD_MAX_MONTHS,
     repositories: repositories.map(displayName),
+    ...(request.workSchedule ? { workSchedule: request.workSchedule } : {}),
     metrics,
   };
 }

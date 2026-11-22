@@ -175,3 +175,31 @@ test('overviewAcceptsTheDayPeriodForExactlyTwelveMonths', async () => {
 
   expect(overview.range.since).toBe('2025-04-01');
 });
+
+function reviewedOn(readyAt: string, commentedAt: string, mergedOn: string, number: number): PullRequestActivity {
+  return { ...mergedAt(mergedOn, number), createdAt: readyAt, comments: [{ actor: { login: 'bob', isBot: false }, at: commentedAt }] };
+}
+
+test('workScheduleIsAppliedToTilesAndRowsOfTheCurrentAndPreviousRange', async () => {
+  const schedule = { days: ['mon' as const], start: '09:00', end: '17:00', timeZone: 'UTC' };
+  const ports = portsWith(
+    reviewedOn('2026-03-06T17:00:00Z', '2026-03-09T10:00:00Z', '2026-03-10T10:00:00Z', 1),
+    reviewedOn('2026-01-09T17:00:00Z', '2026-01-12T11:00:00Z', '2026-01-13T10:00:00Z', 2),
+  );
+
+  const plain = await queryDashboard(ports, request(), now);
+  const working = await queryDashboard(ports, request({ workSchedule: schedule }), now);
+  const waiting = (dashboard: typeof plain) => dashboard.metrics.find((metric) => metric.id === 'reviewWaitingTime');
+
+  expect(waiting(plain)?.tiles.current.values.median).toBe(65);
+  expect(waiting(working)?.tiles.current.values.median).toBe(1);
+  expect(waiting(working)?.tiles.previous.values.median).toBe(2);
+  expect(waiting(working)?.rows.at(-1)?.values.median).toBe(1);
+  expect(working.workSchedule).toEqual(schedule);
+});
+
+test('overviewEchoesNoScheduleWhenNoneIsSet', async () => {
+  const overview = await queryDashboard(portsWith(), request(), now);
+
+  expect('workSchedule' in overview).toBe(false);
+});

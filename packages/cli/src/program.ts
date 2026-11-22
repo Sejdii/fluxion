@@ -27,6 +27,7 @@ export interface ServeRequest {
   port?: number;
   open: boolean;
   repos?: string[];
+  workSchedule?: WorkSchedule;
 }
 
 export type RunServe = (request: ServeRequest) => Promise<string>;
@@ -91,8 +92,12 @@ function addDashboard(program: Command, run: RunServe, io: CliIo): void {
     .option('--port <n>', 'port for the dashboard (default: any free port)')
     .option('--no-open', 'do not open the browser')
     .option('--repos <paths...>', 'repositories to show, as comma-separated relative paths (default: this repository, or all found below)')
+    .option('--work-days <days>', WORK_DAYS_HELP)
+    .option('--work-hours <hours>', WORK_HOURS_HELP)
+    .option('--timezone <zone>', TIMEZONE_HELP)
     .action(async (options) => {
-      const request = { open: options.open, ...(options.port === undefined ? {} : { port: parsePort(options.port) }) };
+      const workSchedule = workScheduleOf(options);
+      const request = { open: options.open, ...(options.port === undefined ? {} : { port: parsePort(options.port) }), ...(workSchedule ? { workSchedule } : {}) };
       const url = await run(withRepos(request, options.repos));
       io.stdout(`Fluxion dashboard: ${url}\n`);
     });
