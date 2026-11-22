@@ -4,6 +4,7 @@ import { Chart } from './chart/index.js';
 import { DataTable } from './DataTable.js';
 import { formatValue } from './format.js';
 import { chartPeriodsOf, hasTotalAlongside, isTotal, nameOf } from './metrics.js';
+import { describeSchedule } from './Settings.js';
 import { Tiles } from './Tiles.js';
 
 function repositoriesNote(repositories: string[]): string {
@@ -19,6 +20,7 @@ function Status({ dashboard, onRefresh }: { dashboard: Dashboard; onRefresh(): v
         {dashboard.range.since} to {dashboard.range.until}
       </span>
       <span>{dashboard.n.toLocaleString('en-US')} merged PRs</span>
+      {dashboard.workSchedule ? <span>working time: {describeSchedule(dashboard.workSchedule)}</span> : null}
       <span>fetched {fetched} UTC</span>
       <button className="link-button" onClick={onRefresh}>
         Refresh
@@ -57,6 +59,7 @@ export function Detail({ dashboard, metric, onRefresh }: DetailProps) {
     <main className="detail">
       <div className="detail-head">
         <h1>{nameOf(metric)}</h1>
+        {metric.unit === 'hours' && dashboard.workSchedule ? <span className="muted">working hours</span> : null}
       </div>
       <Status dashboard={dashboard} onRefresh={onRefresh} />
       {dashboard.n === 0 ? <div className="empty">No merged PRs in this range</div> : <Body key={metric.id} metric={metric} dashboard={dashboard} />}

@@ -8,7 +8,7 @@ export interface DashboardQuery {
   since?: string;
   until?: string;
   repos?: string[];
-  workSchedule?: WorkSchedule;
+  workSchedule?: WorkSchedule | null;
 }
 
 export interface DashboardUseCase {
@@ -26,7 +26,8 @@ function splitRepos(value: string | undefined): string[] | undefined {
   return paths.length === 0 ? undefined : paths;
 }
 
-function workScheduleOf(params: URLSearchParams): WorkSchedule | undefined {
+function workScheduleOf(params: URLSearchParams): WorkSchedule | null | undefined {
+  if (params.get('workSchedule') === 'off') return null;
   const [days, hours, timeZone] = ['workDays', 'workHours', 'timezone'].map((name) => params.get(name) || undefined);
   if (days === undefined && hours === undefined && timeZone === undefined) return undefined;
   return parseWorkSchedule({ days, hours, timeZone });
@@ -40,7 +41,7 @@ function queryOf(params: URLSearchParams): DashboardQuery {
   const until = params.get('until');
   const repos = splitRepos(params.get('repos') ?? undefined);
   const workSchedule = workScheduleOf(params);
-  if (workSchedule) query.workSchedule = workSchedule;
+  if (workSchedule !== undefined) query.workSchedule = workSchedule;
   if (since) query.since = since;
   if (until) query.until = until;
   if (repos) query.repos = repos;

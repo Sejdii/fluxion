@@ -2,6 +2,11 @@ import type { Dashboard, RepositoryOption } from '@fluxion/core';
 import { useCallback, type Dispatch, type SetStateAction, useEffect, useRef, useState } from 'react';
 import { fetchDashboard, fetchRepositories } from './api.js';
 import { defaultQuery, queryKey, type Query } from './query.js';
+import { loadSchedule, saveSchedule } from './schedule-storage.js';
+
+function browserStorage(): Storage | undefined {
+  return typeof localStorage === 'undefined' ? undefined : localStorage;
+}
 
 export interface DashboardState {
   options: RepositoryOption[];
@@ -39,9 +44,14 @@ function useLoader(cache: Map<string, Dashboard>, setState: SetState): Load {
       const settle = (change: Partial<DashboardState>) => {
         if (ticket === latest.current) setState((previous) => ({ ...previous, loading: false, ...change }));
       };
+      const settled = (dashboard: Dashboard) => {
+        if (query.workSchedule !== undefined) saveSchedule(browserStorage(), query.workSchedule);
+        const resolved = query.workSchedule === undefined ? { ...query, workSchedule: dashboard.workSchedule ?? null } : query;
+        settle({ dashboard, query: resolved });
+      };
       setState((previous) => ({ ...previous, query, loading: true, error: null }));
       resolveDashboard(cache, query, refresh).then(
-        (dashboard) => settle({ dashboard }),
+        settled,
         (error: Error) => settle({ error: error.message }),
       );
     },
@@ -54,7 +64,8 @@ function useStart(setState: SetState, load: Load): () => void {
     setState((previous) => ({ ...previous, loading: true, error: null }));
     fetchRepositories().then(
       (options) => {
-        const query = defaultQuery(options.map((option) => option.path), new Date());
+        const schedule = loadSchedule(browserStorage());
+        const query = { ...defaultQuery(options.map((option) => option.path), new Date()), ...(schedule === undefined ? {} : { workSchedule: schedule }) };
         setState((previous) => ({ ...previous, options }));
         load(query, false);
       },
