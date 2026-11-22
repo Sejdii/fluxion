@@ -5,16 +5,31 @@ import { inRailOrder } from './metrics.js';
 import { Rail } from './Rail.js';
 import { useDashboard } from './useDashboard.js';
 
+const GOODHARTS_LAW_URL = 'https://lawsofsoftwareengineering.com/laws/goodharts-law/';
+
+function Header() {
+  return (
+    <header className="app-header">
+      <a className="goodhart" href={GOODHARTS_LAW_URL} target="_blank" rel="noopener">
+        Goodhart’s law
+      </a>
+    </header>
+  );
+}
+
 function Loaded({ dashboard }: { dashboard: Dashboard }) {
   const metrics = inRailOrder(dashboard.metrics);
   const [selectedId, setSelectedId] = useState(metrics[0]?.id);
   const selected = metrics.find((metric) => metric.id === selectedId) ?? metrics[0];
   if (!selected) return null;
   return (
-    <div className="shell">
-      <Rail metrics={metrics} selectedId={selected.id} onSelect={setSelectedId} />
-      <Detail dashboard={dashboard} metric={selected} />
-    </div>
+    <>
+      <Header />
+      <div className="shell">
+        <Rail metrics={metrics} selectedId={selected.id} onSelect={setSelectedId} />
+        <Detail dashboard={dashboard} metric={selected} />
+      </div>
+    </>
   );
 }
 
