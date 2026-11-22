@@ -1,5 +1,5 @@
 import type { WorkSchedule } from '@fluxion/core';
-import { WEEKDAYS } from './query.js';
+import { WEEKDAYS, type ScheduleChoice } from './query.js';
 
 const KEY = 'fluxion.workSchedule';
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -17,8 +17,7 @@ function isSchedule(value: unknown): value is WorkSchedule {
   return validDays && isTime(start) && isTime(end) && start < end && typeof timeZone === 'string' && timeZone !== '';
 }
 
-/** undefined: nothing usable remembered, so the server's schedule applies; null: the user turned the schedule off. */
-export function loadSchedule(storage: Stored | undefined): WorkSchedule | null | undefined {
+export function loadSchedule(storage: Stored | undefined): ScheduleChoice {
   try {
     const text = storage?.getItem(KEY);
     if (text === null || text === undefined) return undefined;
@@ -33,6 +32,6 @@ export function saveSchedule(storage: Stored | undefined, schedule: WorkSchedule
   try {
     storage?.setItem(KEY, JSON.stringify(schedule));
   } catch {
-    // Storage may be full or blocked; the schedule then only lasts for this visit.
+    return;
   }
 }

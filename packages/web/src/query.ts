@@ -2,6 +2,8 @@ import type { Weekday, WorkSchedule } from '@fluxion/core';
 
 export type Period = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
+export type ScheduleChoice = WorkSchedule | null | undefined;
+
 export interface Range {
   since: string;
   until: string;
@@ -10,8 +12,7 @@ export interface Range {
 export interface Query extends Range {
   repos: string[];
   period: Period;
-  /** undefined: the server's own schedule; null: no schedule; otherwise the schedule to apply. */
-  workSchedule?: WorkSchedule | null;
+  workSchedule?: ScheduleChoice;
 }
 
 export const WEEKDAYS: Weekday[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
@@ -20,11 +21,11 @@ export function defaultSchedule(): WorkSchedule {
   return { days: WEEKDAYS.slice(0, 5), start: '09:00', end: '17:00', timeZone: new Intl.DateTimeFormat().resolvedOptions().timeZone };
 }
 
-export function isValidSchedule(schedule: WorkSchedule | null | undefined): boolean {
+export function isValidSchedule(schedule: ScheduleChoice): boolean {
   return !schedule || (schedule.days.length > 0 && schedule.start !== '' && schedule.end !== '' && schedule.start < schedule.end && schedule.timeZone !== '');
 }
 
-export function scheduleKey(schedule: WorkSchedule | null | undefined): string {
+export function scheduleKey(schedule: ScheduleChoice): string {
   return schedule === undefined ? 'server' : schedule === null ? 'off' : [schedule.days.join(','), schedule.start, schedule.end, schedule.timeZone].join(' ');
 }
 
