@@ -14,6 +14,7 @@ export interface DashboardState {
 export interface DashboardActions {
   apply(query: Query): void;
   refresh(): void;
+  retry(): void;
 }
 
 const INITIAL: DashboardState = { options: [], query: null, dashboard: null, error: null, loading: true };
@@ -38,9 +39,9 @@ function useLoader(cache: Map<string, Dashboard>, setState: SetState): Load {
       const settle = (change: Partial<DashboardState>) => {
         if (ticket === latest.current) setState((previous) => ({ ...previous, loading: false, ...change }));
       };
-      setState((previous) => ({ ...previous, loading: true, error: null }));
+      setState((previous) => ({ ...previous, query, loading: true, error: null }));
       resolveDashboard(cache, query, refresh).then(
-        (dashboard) => settle({ dashboard, query }),
+        (dashboard) => settle({ dashboard }),
         (error: Error) => settle({ error: error.message }),
       );
     },
@@ -48,28 +49,33 @@ function useLoader(cache: Map<string, Dashboard>, setState: SetState): Load {
   );
 }
 
-function useStartingLoad(setState: SetState, load: Load): void {
-  useEffect(() => {
+function useStart(setState: SetState, load: Load): () => void {
+  const start = useCallback(() => {
+    setState((previous) => ({ ...previous, loading: true, error: null }));
     fetchRepositories().then(
       (options) => {
         const query = defaultQuery(options.map((option) => option.path), new Date());
-        setState((previous) => ({ ...previous, options, query }));
+        setState((previous) => ({ ...previous, options }));
         load(query, false);
       },
       (error: Error) => setState((previous) => ({ ...previous, loading: false, error: error.message })),
     );
   }, [load, setState]);
+  useEffect(start, [start]);
+  return start;
 }
 
 export function useDashboard(): DashboardState & DashboardActions {
   const cache = useRef(new Map<string, Dashboard>()).current;
   const [state, setState] = useState<DashboardState>(INITIAL);
   const load = useLoader(cache, setState);
-  useStartingLoad(setState, load);
+  const start = useStart(setState, load);
   const apply = useCallback((query: Query) => load(query, false), [load]);
   const refresh = useCallback(() => {
     cache.clear();
     if (state.query) load(state.query, true);
   }, [cache, load, state.query]);
-  return { ...state, apply, refresh };
+  const { query } = state;
+  const retry = useCallback(() => (query ? load(query, false) : start()), [load, query, start]);
+  return { ...state, apply, refresh, retry };
 }

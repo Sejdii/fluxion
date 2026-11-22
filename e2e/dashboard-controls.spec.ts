@@ -1,6 +1,6 @@
 import { DataError } from '../packages/core/src/index.js';
 import { expect, test } from './fixtures.js';
-import { metricRow, openDashboard, recentPullRequests } from './pull-requests.js';
+import { openDashboard, recentPullRequests } from './pull-requests.js';
 import type { Page } from '@playwright/test';
 
 const RATE_LIMIT_REASON = 'GitHub rate limit is too low to fetch the next page (3 remaining). It resets at 2026-03-20T11:00:00Z';
@@ -20,7 +20,7 @@ test('rateLimitOnFirstLoadShowsTheMessageWithTheResetTime', async ({ page, data 
   await expect(page.getByRole('alert')).toHaveText(RATE_LIMIT_MESSAGE);
 });
 
-test('rateLimitAfterRefreshKeepsTheChartsAlreadyLoaded', async ({ page, data }) => {
+test('rateLimitAfterRefreshShowsOnlyTheErrorWithRetryAndEnabledControls', async ({ page, data }) => {
   await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
   await openDashboard(page);
   data.failWith(new DataError(RATE_LIMIT_REASON));
@@ -28,7 +28,9 @@ test('rateLimitAfterRefreshKeepsTheChartsAlreadyLoaded', async ({ page, data }) 
   await page.getByRole('button', { name: 'Refresh' }).click();
 
   await expect(page.getByRole('alert')).toHaveText(RATE_LIMIT_MESSAGE);
-  await expect(metricRow(page, 'PR size')).toContainText('30');
+  await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible();
+  await expect(page.getByRole('option')).toHaveCount(0);
+  await expect(period(page, 'Month')).toBeEnabled();
 });
 
 test('emptyRangeShowsNoChart', async ({ page, data }) => {

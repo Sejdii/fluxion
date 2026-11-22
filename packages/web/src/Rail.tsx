@@ -1,6 +1,7 @@
 import type { DashboardMetric } from '@fluxion/core';
 import type { KeyboardEvent, ReactNode } from 'react';
 import { useRef } from 'react';
+import { RailSkeleton } from './Loading.js';
 import { Sparkline } from './chart/index.js';
 import { changeOf } from './change.js';
 import { formatValue } from './format.js';
@@ -63,16 +64,6 @@ function RailRow({ metric, selected, onSelect, setRef }: RowProps) {
   );
 }
 
-function Skeleton() {
-  return (
-    <div className="metric-list" aria-hidden="true">
-      {[0, 1, 2, 3, 4, 5].map((slot) => (
-        <div key={slot} className="row skeleton" />
-      ))}
-    </div>
-  );
-}
-
 function targetIndex(key: string, current: number, last: number): number | null {
   if (key === 'ArrowDown') return Math.min(current + 1, last);
   if (key === 'ArrowUp') return Math.max(current - 1, 0);
@@ -102,20 +93,22 @@ export function Rail(props: RailProps) {
     <aside className="rail">
       <div className="brand">fluxion</div>
       {controls}
-      {loading ? <Skeleton /> : null}
-      <div role="listbox" aria-label="Metrics" className="metric-list" onKeyDown={onKeyDown} hidden={loading}>
-        {metrics.map((metric, index) => (
-          <RailRow
-            key={metric.id}
-            metric={metric}
-            selected={metric.id === selectedId}
-            onSelect={() => onSelect(metric.id)}
-            setRef={(element) => {
-              rows.current[index] = element;
-            }}
-          />
-        ))}
-      </div>
+      {loading ? <RailSkeleton /> : null}
+      {loading || metrics.length === 0 ? null : (
+        <div role="listbox" aria-label="Metrics" className="metric-list" onKeyDown={onKeyDown}>
+          {metrics.map((metric, index) => (
+            <RailRow
+              key={metric.id}
+              metric={metric}
+              selected={metric.id === selectedId}
+              onSelect={() => onSelect(metric.id)}
+              setRef={(element) => {
+                rows.current[index] = element;
+              }}
+            />
+          ))}
+        </div>
+      )}
     </aside>
   );
 }
