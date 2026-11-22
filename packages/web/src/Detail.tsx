@@ -6,8 +6,6 @@ import { formatValue } from './format.js';
 import { chartPeriodsOf, isTotal, nameOf } from './metrics.js';
 import { Tiles } from './Tiles.js';
 
-const GOODHARTS_LAW_URL = 'https://lawsofsoftwareengineering.com/laws/goodharts-law/';
-
 function Status({ dashboard }: { dashboard: Dashboard }) {
   const fetched = new Date(dashboard.fetchedAt).toLocaleTimeString('en-GB', { timeZone: 'UTC' });
   return (
@@ -40,9 +38,6 @@ export function Detail({ dashboard, metric }: { dashboard: Dashboard; metric: Da
     <main className="detail">
       <div className="detail-head">
         <h1>{nameOf(metric)}</h1>
-        <a className="goodhart" href={GOODHARTS_LAW_URL} target="_blank" rel="noopener">
-          Goodhart’s law
-        </a>
       </div>
       <Status dashboard={dashboard} />
       {dashboard.n === 0 ? <div className="empty">No merged PRs in this range</div> : <Body key={metric.id} metric={metric} />}
