@@ -14,9 +14,12 @@ test('yearPeriodShowsTwoYearSelectsInsteadOfDateInputs', () => {
   const markup = controls({ period: 'yearly' });
   expect(markup.match(/<select/g)).toHaveLength(2);
   expect(markup).not.toContain('type="date"');
-  expect(markup).toContain('<option value="2008"');
-  expect(markup).toContain('<option value="2026" selected="">2026</option>');
+});
+
+test('yearSelectsShowTheYearsOfTheRange', () => {
+  const markup = controls({ period: 'yearly' });
   expect(markup).toContain('<option value="2025" selected="">2025</option>');
+  expect(markup).toContain('<option value="2026" selected="">2026</option>');
 });
 
 test('otherPeriodsKeepTheDateInputs', () => {

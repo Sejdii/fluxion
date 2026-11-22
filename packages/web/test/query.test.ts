@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { applyChoice, defaultQuery, isDayPeriodAllowed, queryKey, queryString, snapToYears, yearChoices, yearRange, type Query } from '../src/query.js';
+import { applyChoice, defaultQuery, isDayPeriodAllowed, queryKey, queryString, snapToYears, yearChoices, yearRange, yearsOf, type Query } from '../src/query.js';
 
 const today = new Date('2026-11-22T15:00:00Z');
 const MAX_MONTHS = 12;
@@ -68,9 +68,12 @@ test('aSingleYearIsAWholeYearRange', () => {
   expect(yearRange(2024, 2024, today)).toEqual({ since: '2024-01-01', until: '2024-12-31' });
 });
 
-test('snapToYearsCoversAnArbitraryRangeWithWholeYears', () => {
-  expect(snapToYears({ since: '2025-12-01', until: '2026-11-22' }, today)).toEqual({ since: '2025-01-01', until: '2026-11-22' });
+test('snapToYearsCoversAPastRangeWithWholeYears', () => {
   expect(snapToYears({ since: '2021-03-10', until: '2023-02-01' }, today)).toEqual({ since: '2021-01-01', until: '2023-12-31' });
+});
+
+test('snapToYearsStopsAtTodayWhenTheRangeReachesTheCurrentYear', () => {
+  expect(snapToYears({ since: '2025-12-01', until: '2026-11-22' }, today)).toEqual({ since: '2025-01-01', until: '2026-11-22' });
 });
 
 test('snapToYearsLeavesAWholeYearRangeUnchanged', () => {
@@ -78,8 +81,9 @@ test('snapToYearsLeavesAWholeYearRangeUnchanged', () => {
 });
 
 test('yearChoicesRunFromTheEarliestSupportedYearToTheCurrentYear', () => {
-  const years = yearChoices(today);
-  expect(years[0]).toBe(2008);
-  expect(years.at(-1)).toBe(2026);
-  expect(years).toHaveLength(19);
+  expect(yearChoices(today)).toEqual([2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026]);
+});
+
+test('yearsOfReadsTheYearsOfAnyRange', () => {
+  expect(yearsOf({ since: '2025-12-01', until: '2026-11-22' })).toEqual({ from: 2025, to: 2026 });
 });

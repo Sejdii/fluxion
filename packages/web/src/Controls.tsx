@@ -1,6 +1,6 @@
 import type { RepositoryOption } from '@fluxion/core';
 import { useState } from 'react';
-import { applyChoice, isDayPeriodAllowed, snapToYears, yearChoices, yearOf, yearRange, type Period, type Query, type Range } from './query.js';
+import { applyChoice, isDayPeriodAllowed, snapToYears, yearChoices, yearRange, yearsOf, type Period, type Query, type Range } from './query.js';
 
 const PERIOD_CHOICES: { value: Period; label: string }[] = [
   { value: 'daily', label: 'Day' },
@@ -52,12 +52,11 @@ function Dates({ draft, onChange }: { draft: Query; onChange(change: Partial<Que
 
 function Years({ draft, today, onChange }: { draft: Query; today: Date; onChange(range: Range): void }) {
   const years = yearChoices(today);
-  const from = yearOf(draft.since);
-  const to = yearOf(draft.until);
-  const select = (label: string, value: number, pick: (year: number) => Range) => (
+  const { from, to } = yearsOf(draft);
+  const select = (label: string, value: number, rangeFor: (year: number) => Range) => (
     <label>
       <span className="label">{label}</span>
-      <select value={value} onChange={(event) => onChange(pick(Number(event.target.value)))}>
+      <select value={value} onChange={(event) => onChange(rangeFor(Number(event.target.value)))}>
         {years.map((year) => (
           <option key={year} value={year}>
             {year}
@@ -100,7 +99,15 @@ export function Controls({ options, applied, dayPeriodMaxMonths, today, onApply 
   const change = (partial: Partial<Query>) => setDraft((previous) => ({ ...previous, ...partial }));
   const dayAllowed = isDayPeriodAllowed(draft, dayPeriodMaxMonths) && isDayPeriodAllowed(applied, dayPeriodMaxMonths);
   const apply = () => onApply(applyChoice({ ...draft, period: applied.period }, dayPeriodMaxMonths));
-  const pick = (period: Period) => onApply({ ...applied, ...(period === 'yearly' ? snapToYears(applied, today) : {}), period });
+  const pickPeriod = (period: Period) => {
+    if (period === 'yearly') {
+      const snapped = snapToYears(applied, today);
+      change(snapped);
+      onApply({ ...applied, ...snapped, period });
+    } else {
+      onApply({ ...applied, period });
+    }
+  };
   return (
     <section className="controls" aria-label="Controls">
       <Repositories options={options} repos={draft.repos} onChange={(repos) => change({ repos })} />
@@ -108,7 +115,7 @@ export function Controls({ options, applied, dayPeriodMaxMonths, today, onApply 
       <button className="apply" disabled={!isApplicable(draft, applied)} onClick={apply}>
         Apply
       </button>
-      <Periods applied={applied} dayAllowed={dayAllowed} maxMonths={dayPeriodMaxMonths} onPick={pick} />
+      <Periods applied={applied} dayAllowed={dayAllowed} maxMonths={dayPeriodMaxMonths} onPick={pickPeriod} />
     </section>
   );
 }
