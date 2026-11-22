@@ -51,6 +51,9 @@ Periods: `daily`, `weekly` (ISO weeks, starting Monday and labelled by that Mond
 | `--since <date>` | First merge date, `YYYY-MM-DD` (default depends on the period, see below) |
 | `--until <date>` | Last merge date, `YYYY-MM-DD` (default: today) |
 | `--json` | Print JSON with the same rows as the table (never selected automatically, even when piped) |
+| `--work-days <days>` | Measure review times in working time on these days: a range (`mon-fri`) or a list (`mon,wed,fri`) |
+| `--work-hours <hours>` | Working hours as `HH:MM-HH:MM` |
+| `--timezone <zone>` | IANA time zone the working hours are read in, e.g. `Europe/Warsaw` |
 
 - Default range, ending at `--until`: `daily` 30 days, `weekly` 90 days, `monthly` the last 12 months, `yearly` the last 4 years (both counting the current one), `overall` everything.
 - Pull requests are counted by UTC merge date. Both bounds are inclusive. Periods without merged PRs still appear, with `n` = 0 (and `-` instead of a value for median and p90).
@@ -81,6 +84,22 @@ period   reviewWaitingTime (hours)  n
 - Waiting time ends at the first comment or review by a human reviewer (not the author, not a bot). A PR with no such response uses its merge as the first response, so its waiting time is its total review time.
 - A period with fewer than 5 merged PRs is a low sample: the median is flagged `(low n)` and p90 shows `-`. `-` also means no merged PRs.
 - A value of `0` means a response came at the moment the PR became ready.
+
+#### Working time
+
+By default review times count every hour of the clock. Pass any of `--work-days`, `--work-hours` or `--timezone` to measure `reviewWaitingTime` and `totalReviewTime` in working time instead. Missing flags default to Monday–Friday, `09:00-17:00` and this machine's time zone.
+
+```bash
+fluxion pr reviewWaitingTime median monthly --work-days mon-fri --work-hours 07:00-18:00 --timezone Europe/Warsaw
+```
+
+- Only working hours on working days count. Ready at 18:00 Monday and first comment at 08:00 Tuesday, with hours 07:00–18:00, is 1 hour.
+- An activity outside working time counts as happening at the end of the last working hours before it. A PR that becomes ready outside working time starts counting at the next start of working hours.
+- A duration with no working time is `0` and stays in the statistics.
+- Hours are read in local wall-clock time, so a daylight-saving day can be an hour shorter or longer.
+- The table starts with a `working time:` line and `--json` includes `workSchedule`, only when a schedule is set. Size, comments, reviewers and PRs merged are unaffected.
+- Invalid input (hours that do not start before they end, an unknown time zone, an empty day list, a malformed time) is a usage error (exit `1`).
+- Only the `metric` command uses the schedule; the dashboard does not yet.
 
 ### Size, comments and reviewers metrics
 

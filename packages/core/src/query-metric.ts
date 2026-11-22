@@ -3,6 +3,7 @@ import { DataError, UsageError } from './errors.js';
 import { displayName, type PullRequestActivity, type PullRequestSource, type DateRange, type RepositoryFinder, type RepositoryRef } from './pull-request-source.js';
 import { bucketsOf, type PeriodBucket } from './periods.js';
 import { PERIODS, resolveRange } from './range.js';
+import type { WorkSchedule } from './work-schedule.js';
 import { findMetric, listMetricsOf, type MetricDefinition } from './registry.js';
 
 export interface MetricPorts {
@@ -17,6 +18,7 @@ export interface MetricRequest {
   period: string;
   since?: string | undefined;
   until?: string | undefined;
+  workSchedule?: WorkSchedule | undefined;
 }
 
 export interface MetricRow {
@@ -30,6 +32,7 @@ export interface MetricRow {
 export interface MetricResult {
   range: DateRange;
   unit?: string;
+  workSchedule?: WorkSchedule;
   rows: MetricRow[];
 }
 
@@ -55,10 +58,10 @@ export function checkPeriod(period: string): void {
   }
 }
 
-function rowsOf(definition: MetricDefinition, statistic: string, buckets: PeriodBucket[]): MetricRow[] {
+function rowsOf(definition: MetricDefinition, statistic: string, buckets: PeriodBucket[], schedule: WorkSchedule | undefined): MetricRow[] {
   return buckets.map((bucket) => {
     const n = bucket.pullRequests.length;
-    const row: MetricRow = { period: bucket.label, n, value: definition.calculate(bucket.pullRequests, statistic) };
+    const row: MetricRow = { period: bucket.label, n, value: definition.calculate(bucket.pullRequests, statistic, schedule) };
     if (definition.perPullRequest && isLowSample(n)) row.lowSample = true;
     if (bucket.inProgress) row.inProgress = true;
     return row;
@@ -85,6 +88,11 @@ export async function queryMetric(ports: MetricPorts, request: MetricRequest, no
   const range = resolveRange(request.period, request.since, request.until, now);
   const repositories = await ports.repositories.find();
   const pullRequests = await pooledPullRequests(ports.pullRequests, repositories, range);
-  const rows = rowsOf(definition, request.statistic, bucketsOf(request.period, range, pullRequests, now));
-  return definition.unit ? { range, unit: definition.unit, rows } : { range, rows };
+  const rows = rowsOf(definition, request.statistic, bucketsOf(request.period, range, pullRequests, now), request.workSchedule);
+  return {
+    range,
+    ...(definition.unit ? { unit: definition.unit } : {}),
+    ...(request.workSchedule ? { workSchedule: request.workSchedule } : {}),
+    rows,
+  };
 }
