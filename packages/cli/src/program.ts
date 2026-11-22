@@ -126,7 +126,7 @@ function addFamily(program: Command, family: string, runners: Runners, io: CliIo
       const workSchedule = workScheduleOf(options);
       const request = { family, metric, statistic, period, since: options.since, until: options.until, ...(workSchedule ? { workSchedule } : {}) };
       const result = await runners.metric(withRepos(request, options.repos));
-      io.stdout(options.json ? formatJson({ metric, statistic, period }, result) : formatTable(metric, result.rows, result.unit));
+      io.stdout(options.json ? formatJson({ metric, statistic, period }, result) : formatTable(metric, result.rows, result.unit, result.workSchedule));
     });
   if (family === 'pr') addExplain(command, runners.explain, io);
 }

@@ -107,7 +107,13 @@ test('aSpringForwardDayIsAnHourShorter', async () => {
 test('aWindowEndingInTheSkippedHourEndsWhenTheClockJumps', async () => {
   const pr = pullRequest('2026-03-28T23:00:00Z', null, '2026-03-29T12:00:00Z');
 
-  expect(await totalTime(pr, parseWorkSchedule({ days: 'sun', hours: '00:00-02:30', timeZone: 'Europe/Warsaw' }))).toBe(2.5);
+  expect(await totalTime(pr, parseWorkSchedule({ days: 'sun', hours: '00:00-02:30', timeZone: 'Europe/Warsaw' }))).toBe(2);
+});
+
+test('aWindowStartingInTheSkippedHourStartsWhenTheClockJumps', async () => {
+  const pr = pullRequest('2026-03-28T23:00:00Z', null, '2026-03-29T12:00:00Z');
+
+  expect(await totalTime(pr, parseWorkSchedule({ days: 'sun', hours: '02:30-08:00', timeZone: 'Europe/Warsaw' }))).toBe(5);
 });
 
 test('aFallBackDayIsAnHourLonger', async () => {

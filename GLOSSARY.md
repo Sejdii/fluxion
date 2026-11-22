@@ -31,7 +31,7 @@ The time from ready for review to the merge of a merged PR.
 _Avoid_: Cycle time, lead time
 
 **Work schedule**:
-The working weekdays, the daily working hours and the time zone they are read in. It is optional: without one, review durations count every hour of the clock. It applies to the whole dashboard and to every pooled repository.
+The working weekdays, the daily working hours and the time zone they are read in. It is optional: without one, review durations count every hour of the clock. It applies to every pooled repository of a query. For now it is set on the `metric` command only; the dashboard does not use it yet.
 _Avoid_: Business hours, office hours, calendar
 
 **Working time**:

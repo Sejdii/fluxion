@@ -126,12 +126,37 @@ function offsetAt(instant: number, timeZone: string): number {
   return wallClockAsUtc - Math.floor(instant / 1000) * 1000;
 }
 
-function instantOf(date: LocalDate, minutes: number, timeZone: string): number {
+const MS_PER_SECOND = 1000;
+
+function transitionBetween(earlier: number, later: number, timeZone: string): number {
+  const offsetAfter = offsetAt(later, timeZone);
+  let [before, after] = [earlier, later];
+  while (after - before > MS_PER_SECOND) {
+    const middle = Math.floor((before + after) / 2);
+    if (offsetAt(middle, timeZone) === offsetAfter) after = middle;
+    else before = middle;
+  }
+  return after;
+}
+
+function computeInstantOf(date: LocalDate, minutes: number, timeZone: string): number {
   const wallClockAsUtc = Date.UTC(date.year, date.month - 1, date.day, 0, minutes);
   const firstOffset = offsetAt(wallClockAsUtc, timeZone);
   const guess = wallClockAsUtc - firstOffset;
   const secondOffset = offsetAt(guess, timeZone);
-  return secondOffset === firstOffset ? guess : wallClockAsUtc - secondOffset;
+  if (secondOffset === firstOffset) return guess;
+  return transitionBetween(Math.min(guess, wallClockAsUtc - secondOffset), Math.max(guess, wallClockAsUtc - secondOffset), timeZone);
+}
+
+const instants = new Map<string, number>();
+
+function instantOf(date: LocalDate, minutes: number, timeZone: string): number {
+  const key = `${timeZone}|${date.year}-${date.month}-${date.day}|${minutes}`;
+  const known = instants.get(key);
+  if (known !== undefined) return known;
+  const computed = computeInstantOf(date, minutes, timeZone);
+  instants.set(key, computed);
+  return computed;
 }
 
 function weekdayOf(date: LocalDate): Weekday {

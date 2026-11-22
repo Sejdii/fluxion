@@ -52,3 +52,11 @@ test('jsonOutputEchoesTheScheduleOnlyWhenSet', async () => {
 
   expect(JSON.parse(outcome.stdout)).toMatchObject({ workSchedule: schedule });
 });
+
+test('tableOutputStatesTheAppliedScheduleIncludingDefaults', async () => {
+  const schedule = { days: ['mon' as const, 'tue' as const], start: '09:00', end: '17:00', timeZone: 'UTC' };
+
+  const outcome = await run(['pr', 'totalReviewTime', 'median', 'monthly'], () => Promise.resolve({ ...result, workSchedule: schedule }));
+
+  expect(outcome.stdout.split('\n')[0]).toBe('working time: mon,tue 09:00-17:00 UTC');
+});
