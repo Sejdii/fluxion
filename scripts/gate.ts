@@ -26,6 +26,7 @@ function dependencyCruiser(): void {
 }
 
 dependencyCruiser();
+step('secretlint', 'pnpm', ['exec', 'secretlint', '--secretlintrc', '.secretlintrc.json', '**/*']);
 step('eslint', 'pnpm', ['exec', 'eslint', '.']);
 step('typecheck', 'pnpm', ['exec', 'tsc', '--noEmit']);
 step('unit tests', 'pnpm', ['exec', 'vitest', 'run', '--coverage']);
