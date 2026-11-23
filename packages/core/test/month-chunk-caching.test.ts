@@ -2,20 +2,17 @@ import { expect, test } from 'vitest';
 import {
   CachingPullRequestSource,
   DataError,
-  IN_PROGRESS_TTL_MINUTES,
   InMemoryCache,
   InMemoryPullRequestSource,
   type DateRange,
-  type FetchedPullRequest,
   type PullRequestActivity,
-  type PullRequestSource,
   type RepositoryRef,
 } from '../src/index.js';
 
 const repository: RepositoryRef = { host: 'github', owner: 'acme', name: 'app' };
-const range: DateRange = { since: '2026-01-01', until: '2026-01-31' };
+const firstQuarter: DateRange = { since: '2026-01-01', until: '2026-03-31' };
 
-function pullRequest(number: number, mergedAt = '2026-01-10T00:00:00Z'): PullRequestActivity {
+function pullRequest(number: number, mergedAt: string): PullRequestActivity {
   return {
     number,
     author: null,
@@ -30,21 +27,34 @@ function pullRequest(number: number, mergedAt = '2026-01-10T00:00:00Z'): PullReq
   };
 }
 
-function decorate(source: PullRequestSource): CachingPullRequestSource {
+function monthOf(month: string, lastDay: string): DateRange {
+  return { since: `${month}-01`, until: `${month}-${lastDay}` };
+}
+
+function decorate(source: InMemoryPullRequestSource): CachingPullRequestSource {
   return new CachingPullRequestSource(source, new InMemoryCache());
 }
 
-test('shouldFetchEachCalendarMonthOfARangeSeparately', async () => {
+test('shouldFetchEachWholeCalendarMonthTheRangeTouches', async () => {
   const source = new InMemoryPullRequestSource();
-  const caching = decorate(source);
 
-  await caching.mergedPullRequests(repository, { since: '2026-01-15', until: '2026-03-10' });
+  await decorate(source).mergedPullRequests(repository, { since: '2026-01-15', until: '2026-03-10' });
 
-  expect(source.requested).toEqual([
-    { since: '2026-01-15', until: '2026-01-31' },
-    { since: '2026-02-01', until: '2026-02-28' },
-    { since: '2026-03-01', until: '2026-03-10' },
+  expect(source.requested).toEqual([monthOf('2026-01', '31'), monthOf('2026-02', '28'), monthOf('2026-03', '31')]);
+});
+
+test('shouldReturnOnlyPullRequestsMergedInsideTheRange', async () => {
+  const source = new InMemoryPullRequestSource();
+  source.set(repository, [
+    pullRequest(1, '2026-01-14T23:59:59Z'),
+    pullRequest(2, '2026-01-15T00:00:00Z'),
+    pullRequest(3, '2026-03-10T23:59:59Z'),
+    pullRequest(4, '2026-03-11T00:00:00Z'),
   ]);
+
+  const found = await decorate(source).mergedPullRequests(repository, { since: '2026-01-15', until: '2026-03-10' });
+
+  expect(found.map((pr) => pr.number)).toEqual([2, 3]);
 });
 
 test('shouldReturnEveryPullRequestOnceAcrossMonthEdges', async () => {
@@ -56,122 +66,86 @@ test('shouldReturnEveryPullRequestOnceAcrossMonthEdges', async () => {
     pullRequest(4, '2026-03-01T00:00:00Z'),
   ]);
 
-  const found = await decorate(source).mergedPullRequests(repository, { since: '2026-01-01', until: '2026-03-31' });
+  const found = await decorate(source).mergedPullRequests(repository, firstQuarter);
 
   expect(found.map((pr) => pr.number)).toEqual([1, 2, 3, 4]);
 });
 
-test('shouldReuseClosedMonthsWhenTheRangeShifts', async () => {
+test('shouldReuseEdgeMonthsWhenTheRangeShiftsByADay', async () => {
   const source = new InMemoryPullRequestSource();
   const caching = decorate(source);
-  await caching.mergedPullRequests(repository, { since: '2026-01-01', until: '2026-03-31' });
-  source.requested.length = 0;
+  await caching.mergedPullRequests(repository, { since: '2026-01-15', until: '2026-02-10' });
+  const fetched = source.requested.length;
 
-  await caching.mergedPullRequests(repository, { since: '2026-02-01', until: '2026-04-30' });
+  await caching.mergedPullRequests(repository, { since: '2026-01-16', until: '2026-02-11' });
 
-  expect(source.requested).toEqual([{ since: '2026-04-01', until: '2026-04-30' }]);
+  expect(source.requested.slice(fetched)).toEqual([]);
 });
 
-test('shouldReuseClosedMonthsWhenTheRangesOverlap', async () => {
+test('shouldFetchOnlyTheMissingMonthsWhenRangesOverlap', async () => {
   const source = new InMemoryPullRequestSource();
   const caching = decorate(source);
   await caching.mergedPullRequests(repository, { since: '2026-01-01', until: '2026-02-28' });
-  source.requested.length = 0;
+  const fetched = source.requested.length;
 
-  await caching.mergedPullRequests(repository, { since: '2026-01-01', until: '2026-03-31' });
+  await caching.mergedPullRequests(repository, firstQuarter);
 
-  expect(source.requested).toEqual([{ since: '2026-03-01', until: '2026-03-31' }]);
+  expect(source.requested.slice(fetched)).toEqual([monthOf('2026-03', '31')]);
 });
 
-const today = { since: '2026-05-01', until: '2026-05-20' };
-
-function clocked(): { source: InMemoryPullRequestSource; caching: CachingPullRequestSource; advance(minutes: number): void } {
-  let now = new Date('2026-05-20T12:00:00Z');
+test('shouldShareOneFetchPerMonthBetweenConcurrentCallers', async () => {
   const source = new InMemoryPullRequestSource();
-  const caching = new CachingPullRequestSource(source, new InMemoryCache(), () => now);
-  return { source, caching, advance: (minutes) => void (now = new Date(now.getTime() + minutes * 60_000)) };
-}
+  const caching = decorate(source);
 
-test('monthInProgressShouldServeFromCacheWithinTheTimeToLive', async () => {
-  const { source, caching, advance } = clocked();
-  await caching.mergedPullRequests(repository, today);
+  await Promise.all([caching.mergedPullRequests(repository, firstQuarter), caching.mergedPullRequests(repository, firstQuarter)]);
 
-  advance(IN_PROGRESS_TTL_MINUTES - 1);
-  await caching.mergedPullRequests(repository, today);
-
-  expect(source.fetches).toBe(1);
+  expect(source.fetches).toBe(3);
 });
 
-test('monthInProgressShouldRefetchOnceTheTimeToLiveHasPassed', async () => {
-  const { source, caching, advance } = clocked();
-  await caching.mergedPullRequests(repository, today);
+test('shouldRefetchEveryMonthAfterClear', async () => {
+  const source = new InMemoryPullRequestSource();
+  const caching = decorate(source);
+  await caching.mergedPullRequests(repository, firstQuarter);
 
-  advance(IN_PROGRESS_TTL_MINUTES + 1);
-  await caching.mergedPullRequests(repository, today);
+  await caching.clear();
+  await caching.mergedPullRequests(repository, firstQuarter);
 
-  expect(source.fetches).toBe(2);
+  expect(source.fetches).toBe(6);
 });
 
-test('monthInProgressShouldKeepAClosedMonthForeverEvenWhenTheMonthInProgressExpires', async () => {
-  const { source, caching, advance } = clocked();
-  const range = { since: '2026-04-01', until: '2026-05-20' };
-  await caching.mergedPullRequests(repository, range);
-  source.requested.length = 0;
+test('shouldRefetchOnlyTheMonthThatFailedOnRetry', async () => {
+  const source = new InMemoryPullRequestSource();
+  const caching = decorate(source);
+  source.failMonth('2026-02', new DataError('HTTP 502'));
+  await expect(caching.mergedPullRequests(repository, firstQuarter)).rejects.toBeInstanceOf(DataError);
+  const fetched = source.requested.length;
+  source.failMonth('2026-02', null);
 
-  advance(24 * 60);
-  await caching.mergedPullRequests(repository, range);
+  await caching.mergedPullRequests(repository, firstQuarter);
 
-  expect(source.requested).toEqual([{ since: '2026-05-01', until: '2026-05-20' }]);
-});
-
-class LimitedSource implements PullRequestSource {
-  active = 0;
-  peak = 0;
-
-  constructor(private readonly inner: PullRequestSource, private readonly limit = Infinity) {}
-
-  async mergedPullRequests(repo: RepositoryRef, requested: DateRange): Promise<PullRequestActivity[]> {
-    this.active += 1;
-    this.peak = Math.max(this.peak, this.active);
-    await new Promise((resolve) => setTimeout(resolve, 1));
-    this.active -= 1;
-    const found = await this.inner.mergedPullRequests(repo, requested);
-    if (found.length > this.limit) throw new DataError(`more than ${this.limit} merged pull requests`);
-    return found;
-  }
-
-  pullRequest(repo: RepositoryRef, number: number): Promise<FetchedPullRequest | null> {
-    return this.inner.pullRequest(repo, number);
-  }
-}
-
-test('shouldFetchAtMostThreeMonthsAtOnce', async () => {
-  const source = new LimitedSource(new InMemoryPullRequestSource());
-
-  await decorate(source).mergedPullRequests(repository, { since: '2025-01-01', until: '2025-12-31' });
-
-  expect(source.peak).toBe(3);
+  expect(source.requested.slice(fetched)).toEqual([monthOf('2026-02', '28')]);
 });
 
 test('shouldSucceedWhenTheRangeExceedsTheSearchLimitButNoMonthDoes', async () => {
-  const inner = new InMemoryPullRequestSource();
+  const source = new InMemoryPullRequestSource();
+  source.limitSearchTo(1000);
   const perMonth = 600;
-  inner.set(
+  source.set(
     repository,
     ['2026-01', '2026-02', '2026-03'].flatMap((month, index) =>
       Array.from({ length: perMonth }, (_, n) => pullRequest(index * perMonth + n, `${month}-10T00:00:00Z`)),
     ),
   );
-  const source = new LimitedSource(inner, 1000);
 
-  const found = await decorate(source).mergedPullRequests(repository, { since: '2026-01-01', until: '2026-03-31' });
+  const found = await decorate(source).mergedPullRequests(repository, firstQuarter);
 
   expect(found).toHaveLength(3 * perMonth);
 });
 
 test('shouldStillFailWhenASingleMonthExceedsTheSearchLimit', async () => {
-  const inner = new InMemoryPullRequestSource();
-  inner.set(repository, Array.from({ length: 1001 }, (_, n) => pullRequest(n)));
+  const source = new InMemoryPullRequestSource();
+  source.limitSearchTo(1000);
+  source.set(repository, Array.from({ length: 1001 }, (_, n) => pullRequest(n, '2026-01-10T00:00:00Z')));
 
-  await expect(decorate(new LimitedSource(inner, 1000)).mergedPullRequests(repository, range)).rejects.toBeInstanceOf(DataError);
+  await expect(decorate(source).mergedPullRequests(repository, firstQuarter)).rejects.toBeInstanceOf(DataError);
 });

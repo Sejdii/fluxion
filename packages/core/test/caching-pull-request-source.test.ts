@@ -73,14 +73,15 @@ test('shouldServeRepeatedRequestForSameKeyFromCache', async () => {
   expect(source.calls).toBe(1);
 });
 
-test('shouldFetchAgainForDifferentRange', async () => {
+test('shouldNarrowACachedMonthToTheRequestedDates', async () => {
   const source = new CountingSource();
   const caching = decorate(source);
   await caching.mergedPullRequests(repository, range);
 
-  await caching.mergedPullRequests(repository, { since: '2026-01-01', until: '2026-01-15' });
+  const narrowed = await caching.mergedPullRequests(repository, { since: '2026-01-11', until: '2026-01-31' });
 
-  expect(source.calls).toBe(2);
+  expect(narrowed).toEqual([]);
+  expect(source.calls).toBe(1);
 });
 
 test('shouldFetchAgainForDifferentRepository', async () => {
