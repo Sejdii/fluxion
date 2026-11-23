@@ -1,3 +1,4 @@
+import { DataError } from './errors.js';
 import {
   repositoryKey,
   type DateRange,
@@ -11,10 +12,22 @@ import {
 export class InMemoryPullRequestSource implements PullRequestSource {
   private readonly byRepository = new Map<string, FetchedPullRequest[]>();
   private failure: Error | null = null;
+  private searchLimit = Infinity;
+  private readonly monthFailures = new Map<string, Error>();
   fetches = 0;
+  readonly requested: DateRange[] = [];
 
   failWith(error: Error | null): void {
     this.failure = error;
+  }
+
+  failMonth(month: string, error: Error | null): void {
+    if (error) this.monthFailures.set(month, error);
+    else this.monthFailures.delete(month);
+  }
+
+  limitSearchTo(count: number): void {
+    this.searchLimit = count;
   }
 
   set(repository: RepositoryRef, pullRequests: FetchedPullRequest[]): void {
@@ -23,13 +36,17 @@ export class InMemoryPullRequestSource implements PullRequestSource {
 
   mergedPullRequests(repository: RepositoryRef, range: DateRange): Promise<PullRequestActivity[]> {
     this.fetches += 1;
+    this.requested.push(range);
     if (this.failure) return Promise.reject(this.failure);
+    const monthFailure = this.monthFailures.get(range.since.slice(0, 7));
+    if (monthFailure) return Promise.reject(monthFailure);
     const all = this.byRepository.get(repositoryKey(repository)) ?? [];
     const inRange = all.filter((pr): pr is PullRequestActivity => {
       if (pr.mergedAt === null) return false;
       const mergeDate = pr.mergedAt.slice(0, 10);
       return mergeDate >= range.since && mergeDate <= range.until;
     });
+    if (inRange.length > this.searchLimit) return Promise.reject(new DataError(`more than ${this.searchLimit} merged pull requests`));
     return Promise.resolve(inRange);
   }
 

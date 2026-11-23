@@ -1,4 +1,5 @@
 import { UsageError } from './errors.js';
+import { isoDate } from './dates.js';
 import type { DateRange } from './pull-request-source.js';
 
 export const DEFAULT_RANGE_DAYS = 90;
@@ -10,10 +11,6 @@ export const EARLIEST_DATE = '2008-01-01';
 export const PERIODS = ['daily', 'weekly', 'monthly', 'yearly', 'overall'] as const;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-
-function isoDate(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
 
 function validDate(text: string): string {
   const parsed = new Date(`${text}T00:00:00Z`);
