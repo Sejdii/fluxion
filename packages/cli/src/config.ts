@@ -7,6 +7,7 @@ import {
   InMemoryPullRequestSource,
   explainPullRequest,
   queryDashboard,
+  queryPullRequestCount,
   queryMetric,
   type MetricPorts,
   type RepositoryOption,
@@ -35,6 +36,7 @@ interface RepositorySelection {
 function dashboardUseCase(pullRequests: CachingPullRequestSource, selection: RepositorySelection, now: () => Date, starting: { repos?: string[] | undefined; workSchedule?: WorkSchedule | undefined }): DashboardUseCase {
   return {
     repositories: selection.options,
+    count: ({ repos, ...query }) => queryPullRequestCount({ pullRequests, repositories: selection.finder(repos ?? starting.repos) }, query, now()),
     query: ({ repos, workSchedule, ...query }) => {
       const schedule = workSchedule === undefined ? starting.workSchedule : workSchedule;
       return queryDashboard({ pullRequests, repositories: selection.finder(repos ?? starting.repos) }, { family: 'pr', ...query, ...(schedule ? { workSchedule: schedule } : {}) }, now());

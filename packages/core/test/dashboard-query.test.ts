@@ -146,7 +146,7 @@ test('unsupportedPeriodIsAUsageError', async () => {
 });
 
 test('failingRepositoryIsNamedInTheDataError', async () => {
-  const failing = { mergedPullRequests: () => Promise.reject(new DataError('boom')), pullRequest: () => Promise.resolve(null) };
+  const failing = { mergedPullRequests: () => Promise.reject(new DataError('boom')), countMergedPullRequests: () => Promise.resolve(0), pullRequest: () => Promise.resolve(null) };
   const ports = { pullRequests: failing, repositories: new InMemoryRepositoryFinder(repository) };
 
   await expect(queryDashboard(ports, request(), now)).rejects.toThrow('acme/app: boom');

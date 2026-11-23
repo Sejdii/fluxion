@@ -48,6 +48,10 @@ export class CachingPullRequestSource implements PullRequestSource {
     return months.flat().filter(mergedWithin(range));
   }
 
+  countMergedPullRequests(repository: RepositoryRef, range: DateRange): Promise<number> {
+    return this.source.countMergedPullRequests(repository, range);
+  }
+
   pullRequest(repository: RepositoryRef, number: number): Promise<FetchedPullRequest | null> {
     return this.source.pullRequest(repository, number);
   }

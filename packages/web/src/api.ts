@@ -1,5 +1,5 @@
 import type { Dashboard, RepositoryOption } from '@fluxion/core';
-import { queryString, type Query } from './query.js';
+import { countQueryString, queryString, type Query } from './query.js';
 
 const GATEWAY_TIMEOUTS = [502, 504];
 const LARGE_REPOSITORY_HINT = 'The repository is probably large and the request timed out. Try a shorter time range.';
@@ -18,6 +18,10 @@ async function bodyOf<T>(response: Response): Promise<T> {
 
 export async function fetchDashboard(query: Query, refresh: boolean): Promise<Dashboard> {
   return bodyOf<Dashboard>(await fetch(`/api/pr?${queryString(query, refresh)}`));
+}
+
+export async function fetchPullRequestCount(query: Query): Promise<number> {
+  return (await bodyOf<{ count: number }>(await fetch(`/api/pr/count?${countQueryString(query)}`))).count;
 }
 
 export async function fetchRepositories(): Promise<RepositoryOption[]> {

@@ -41,6 +41,13 @@ query($searchQuery: String!, $cursor: String) {
   }
 }`;
 
+export const MERGED_PULL_REQUEST_COUNT_DOCUMENT = `
+query($searchQuery: String!) {
+  search(query: $searchQuery, type: ISSUE, first: 0) {
+    issueCount
+  }
+}`;
+
 export const PULL_REQUEST_DOCUMENT = `
 query($owner: String!, $name: String!, $number: Int!) {
   repository(owner: $owner, name: $name) {
@@ -91,8 +98,20 @@ interface SearchData {
   };
 }
 
+function searchQueryOf(repository: RepositoryRef, range: DateRange): string {
+  return `repo:${repository.owner}/${repository.name} is:pr is:merged merged:${range.since}..${range.until}`;
+}
+
+export function countVariables(repository: RepositoryRef, range: DateRange): GraphqlVariables {
+  return { searchQuery: searchQueryOf(repository, range) };
+}
+
+export function toCount(raw: unknown): number {
+  return (raw as { search: { issueCount: number } }).search.issueCount;
+}
+
 export function searchVariables(repository: RepositoryRef, range: DateRange, cursor: string | null): GraphqlVariables {
-  const searchQuery = `repo:${repository.owner}/${repository.name} is:pr is:merged merged:${range.since}..${range.until}`;
+  const searchQuery = searchQueryOf(repository, range);
   return cursor ? { searchQuery, cursor } : { searchQuery };
 }
 

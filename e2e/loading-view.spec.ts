@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test';
 import { DataError } from '../packages/core/src/index.js';
 import { expect, test } from './fixtures.js';
 import { metricRow, openDashboard, recentPullRequests } from './pull-requests.js';
+import { SLOW_LOAD_PULL_REQUEST_COUNT } from '../packages/web/src/query.js';
 
 const API = '**/api/pr?*';
 
@@ -91,4 +92,21 @@ test('aFailedReloadShowsTheErrorWithoutOldDataAndRetryLoadsTheData', async ({ pa
   await page.getByRole('button', { name: 'Retry' }).click();
   await expect(metricRow(page, 'PR size')).toContainText('30');
   await expect(period(page, 'Month')).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('aRangeAboveTheSlowLoadCountStartsShorterWithANoticeOfTheCount', async ({ page, data }) => {
+  await data.setPullRequests(recentPullRequests(Array.from({ length: SLOW_LOAD_PULL_REQUEST_COUNT + 1 }, () => 10)));
+
+  await page.goto('/');
+
+  await expect(page.getByRole('note')).toContainText(`${(SLOW_LOAD_PULL_REQUEST_COUNT + 1).toLocaleString('en-US')} merged PRs`);
+  await expect(page.getByRole('note')).toContainText('last 3 months');
+});
+
+test('aRangeBelowTheSlowLoadCountShowsNoNotice', async ({ page, data }) => {
+  await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
+
+  await openDashboard(page);
+
+  await expect(page.getByRole('note')).toHaveCount(0);
 });

@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from 'vitest';
 import { DataError, UsageError, type Dashboard, type RepositoryOption } from '@fluxion/core';
-import { createDashboardApp, type DashboardQuery, type DashboardUseCase } from '../src/http/dashboard-app.js';
+import { createDashboardApp, type CountQuery, type DashboardQuery, type DashboardUseCase } from '../src/http/dashboard-app.js';
 
 const dashboard: Dashboard = {
   range: { since: '2026-02-01', until: '2026-03-20' },
@@ -20,13 +20,18 @@ const options: RepositoryOption[] = [{ path: 'app', name: 'acme/app' }];
 
 interface Harness {
   queries: DashboardQuery[];
+  counts: CountQuery[];
   refreshes: number;
   request(path: string): Promise<Response>;
 }
 
 function harness(query: DashboardUseCase['query'] = () => Promise.resolve(dashboard), staticRoot = '/srv/web'): Harness {
-  const state = { queries: [] as DashboardQuery[], refreshes: 0 };
+  const state = { queries: [] as DashboardQuery[], counts: [] as CountQuery[], refreshes: 0 };
   const useCase: DashboardUseCase = {
+    count: (request) => {
+      state.counts.push(request);
+      return Promise.resolve({ range: { since: '2026-01-01', until: '2026-02-01' }, count: 7 });
+    },
     query: (request) => {
       state.queries.push(request);
       return query(request);
@@ -179,4 +184,16 @@ test('rootServesTheStaticPageFromTheAbsoluteRoot', async () => {
 
 test('relativeStaticRootIsRejected', () => {
   expect(() => harness(undefined, 'packages/web/dist')).toThrow('Static root must be an absolute path');
+});
+
+test('apiPrCountReturnsTheCountAndMapsQueryParameters', async () => {
+  const api = harness();
+
+  const response = await api.request('/api/pr/count?repos=a,b&since=2026-01-01&until=2026-02-01');
+
+  expect([response.status, await response.json(), api.counts]).toEqual([
+    200,
+    { range: { since: '2026-01-01', until: '2026-02-01' }, count: 7 },
+    [{ since: '2026-01-01', until: '2026-02-01', repos: ['a', 'b'] }],
+  ]);
 });

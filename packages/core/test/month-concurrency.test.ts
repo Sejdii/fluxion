@@ -25,6 +25,10 @@ class GatedSource implements PullRequestSource {
     return [];
   }
 
+  countMergedPullRequests(): Promise<number> {
+    return Promise.resolve(0);
+  }
+
   pullRequest(): Promise<FetchedPullRequest | null> {
     return Promise.resolve(null);
   }
