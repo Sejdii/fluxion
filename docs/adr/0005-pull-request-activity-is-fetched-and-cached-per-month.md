@@ -1,0 +1,3 @@
+# Pull request activity is fetched and cached per month
+
+The caching pull-request source splits a range into UTC calendar-month chunks, fetches up to three chunks at once and caches each chunk per repository and chunk bounds. A closed month is reused by any later range that contains it. A chunk whose last day had not ended when it was fetched is refetched after 30 minutes, and Refresh clears everything. We rejected one request per range because a year of a busy repository took about 70 s in sequential pages, past a typical gateway timeout, and because GitHub search returns at most 1000 results per query, a limit that now applies per month instead of per range. The port, the dashboard and ADR-0002 are unchanged.

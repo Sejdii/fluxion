@@ -103,7 +103,7 @@ test('shouldShareOneFetchBetweenConcurrentCallers', async () => {
 
   source.open();
 
-  expect(await first).toBe(await second);
+  expect(await first).toEqual(await second);
   expect(source.calls).toBe(1);
 });
 

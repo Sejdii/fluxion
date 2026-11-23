@@ -12,6 +12,7 @@ export class InMemoryPullRequestSource implements PullRequestSource {
   private readonly byRepository = new Map<string, FetchedPullRequest[]>();
   private failure: Error | null = null;
   fetches = 0;
+  readonly requested: DateRange[] = [];
 
   failWith(error: Error | null): void {
     this.failure = error;
@@ -23,6 +24,7 @@ export class InMemoryPullRequestSource implements PullRequestSource {
 
   mergedPullRequests(repository: RepositoryRef, range: DateRange): Promise<PullRequestActivity[]> {
     this.fetches += 1;
+    this.requested.push(range);
     if (this.failure) return Promise.reject(this.failure);
     const all = this.byRepository.get(repositoryKey(repository)) ?? [];
     const inRange = all.filter((pr): pr is PullRequestActivity => {
