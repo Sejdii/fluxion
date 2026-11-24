@@ -100,7 +100,7 @@ test('aRepositoryAboveTheSlowLoadCountStartsWithTheLastThreeMonthsAndANoticeWith
   const starting = startingQuery(['app'], today, SLOW_LOAD_PULL_REQUEST_COUNT + 1);
 
   expect(starting.query).toEqual({ repos: ['app'], since: '2026-09-01', until: '2026-11-22', period: 'monthly' });
-  expect(starting.notice).toContain('1,001 merged PRs');
+  expect(starting.notice).toContain(`${(SLOW_LOAD_PULL_REQUEST_COUNT + 1).toLocaleString('en-US')} merged PRs`);
 });
 
 test('countQueryStringSendsOnlyRepositoriesAndRange', () => {

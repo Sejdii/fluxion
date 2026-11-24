@@ -36,7 +36,7 @@ function isoDate(date: Date): string {
   return date.toISOString().slice(0, DATE_LENGTH);
 }
 
-export const SLOW_LOAD_PULL_REQUEST_COUNT = 1000;
+export const SLOW_LOAD_PULL_REQUEST_COUNT = 500;
 export const SHORT_DEFAULT_MONTHS = 3;
 
 export function defaultQuery(repos: string[], today: Date, months = DEFAULT_MONTHS): Query {

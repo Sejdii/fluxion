@@ -73,7 +73,7 @@ test('theStatusLineCyclesThroughTheMessages', async ({ page, data }) => {
   await page.goto('/');
 
   await expect(page.getByRole('status')).toHaveText('Loading all six metrics…');
-  await expect(page.getByRole('status')).toHaveText('Fetching pull requests…');
+  await expect(page.getByRole('status')).toHaveText('Fetching 5 merged pull requests…');
   await release();
 });
 

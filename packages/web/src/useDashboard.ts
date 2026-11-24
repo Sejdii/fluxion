@@ -15,6 +15,7 @@ export interface DashboardState {
   error: string | null;
   loading: boolean;
   notice: string | null;
+  pullRequestCount: number | null;
 }
 
 export interface DashboardActions {
@@ -23,7 +24,7 @@ export interface DashboardActions {
   retry(): void;
 }
 
-const INITIAL: DashboardState = { options: [], query: null, dashboard: null, error: null, loading: true, notice: null };
+const INITIAL: DashboardState = { options: [], query: null, dashboard: null, error: null, loading: true, notice: null, pullRequestCount: null };
 
 async function resolveDashboard(cache: Map<string, Dashboard>, query: Query, refresh: boolean): Promise<Dashboard> {
   const key = queryKey(query);
@@ -50,7 +51,13 @@ function useLoader(cache: Map<string, Dashboard>, setState: SetState): Load {
         const resolved = query.workSchedule === undefined ? { ...query, workSchedule: dashboard.workSchedule ?? null } : query;
         settle({ dashboard, query: resolved });
       };
-      setState((previous) => ({ ...previous, query, loading: true, error: null }));
+      setState((previous) => ({ ...previous, query, loading: true, error: null, pullRequestCount: null }));
+      fetchPullRequestCount(query).then(
+        (pullRequestCount) => {
+          if (ticket === latest.current) setState((previous) => ({ ...previous, pullRequestCount }));
+        },
+        () => undefined,
+      );
       resolveDashboard(cache, query, refresh).then(
         settled,
         (error: Error) => settle({ error: error.message }),
