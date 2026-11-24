@@ -1,9 +1,9 @@
 import type { Actor, DateRange, DraftEvent, FetchedPullRequest, PullRequestActivity, RepositoryRef, ReviewActivity, ReviewSubmission } from '@fluxion/core';
 import type { GraphqlVariables } from './github-api.js';
 
-const PAGE_SIZE = 100;
+const PAGE_SIZE = 50;
 const NESTED_PAGE_SIZE = 100;
-// Threads multiply: 100 PRs x 20 threads x 20 comments keeps the query far below GitHub's 500,000 node limit.
+// Threads multiply: 50 PRs x 20 threads x 20 comments keeps the query far below GitHub's 500,000 node limit.
 const THREAD_PAGE_SIZE = 20;
 
 export const GITHUB_SEARCH_RESULT_LIMIT = 1000;
