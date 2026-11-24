@@ -2,19 +2,23 @@ import { useEffect, useState, type CSSProperties } from 'react';
 
 export const SKELETON_DELAY_MS = 150;
 const MESSAGE_INTERVAL_MS = 1800;
-const MESSAGES = ['Loading all six metrics…', 'Fetching pull requests…', 'Computing medians…', 'Building charts…'];
+function messagesFor(pullRequestCount: number | null): string[] {
+  const fetching = pullRequestCount === null ? 'Fetching pull requests…' : `Fetching ${pullRequestCount.toLocaleString('en-US')} merged pull requests…`;
+  return ['Loading all six metrics…', fetching, 'Computing medians…', 'Building charts…'];
+}
 const SIX = [0, 1, 2, 3, 4, 5];
 const FOUR = [0, 1, 2, 3];
 const TABLE_ROWS = [0, 1, 2, 3, 4];
 const LAYER_STYLE = { '--delay': `${SKELETON_DELAY_MS}ms` } as CSSProperties;
 
-function useCyclingMessage(): string {
+function useCyclingMessage(pullRequestCount: number | null): string {
+  const messages = messagesFor(pullRequestCount);
   const [index, setIndex] = useState(0);
   useEffect(() => {
-    const timer = setInterval(() => setIndex((current) => (current + 1) % MESSAGES.length), MESSAGE_INTERVAL_MS);
+    const timer = setInterval(() => setIndex((current) => (current + 1) % messages.length), MESSAGE_INTERVAL_MS);
     return () => clearInterval(timer);
   }, []);
-  return MESSAGES[index] ?? '';
+  return messages[index] ?? '';
 }
 
 export function RailSkeleton() {
@@ -34,8 +38,8 @@ export function RailSkeleton() {
   );
 }
 
-function StatusLine() {
-  const message = useCyclingMessage();
+function StatusLine({ pullRequestCount }: { pullRequestCount: number | null }) {
+  const message = useCyclingMessage(pullRequestCount);
   return (
     <div className="loading-status" role="status" aria-live="polite">
       <span className="dot" aria-hidden="true" />
@@ -46,12 +50,12 @@ function StatusLine() {
   );
 }
 
-export function DetailSkeleton() {
+export function DetailSkeleton({ pullRequestCount }: { pullRequestCount: number | null }) {
   return (
     <main className="detail" aria-busy="true">
       <div className="progress-bar loading-layer" style={LAYER_STYLE} aria-hidden="true" />
       <div className="loading-layer" style={LAYER_STYLE} data-testid="loading-layer">
-        <StatusLine />
+        <StatusLine pullRequestCount={pullRequestCount} />
         <div className="skeleton-body" aria-hidden="true">
           <span className="sk sk-title" />
           <div className="tiles">

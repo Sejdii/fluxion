@@ -54,6 +54,7 @@ test('pooledRepositoriesAreComputedOverTheCombinedPullRequests', async () => {
 test('failingRepositoryFailsTheQueryAndIsNamed', async () => {
   const failing: PullRequestSource = {
     mergedPullRequests: (repository) => (repository === api ? Promise.reject(new DataError('rate limit')) : Promise.resolve([])),
+    countMergedPullRequests: () => Promise.resolve(0),
     pullRequest: () => Promise.resolve(null),
   };
   const ports = { pullRequests: failing, repositories: new InMemoryRepositoryFinder(app, api) };
@@ -66,6 +67,7 @@ test('failingRepositoryFailsTheQueryAndIsNamed', async () => {
 test('unexpectedFailureOfARepositoryIsNotWrappedAsADataError', async () => {
   const crashing: PullRequestSource = {
     mergedPullRequests: () => Promise.reject(new TypeError('boom')),
+    countMergedPullRequests: () => Promise.resolve(0),
     pullRequest: () => Promise.resolve(null),
   };
   const ports = { pullRequests: crashing, repositories: new InMemoryRepositoryFinder(app) };

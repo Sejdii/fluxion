@@ -1,7 +1,7 @@
 import type { Dashboard, RepositoryOption } from '@fluxion/core';
 import { useCallback, type Dispatch, type SetStateAction, useEffect, useRef, useState } from 'react';
-import { fetchDashboard, fetchRepositories } from './api.js';
-import { defaultQuery, queryKey, type Query } from './query.js';
+import { fetchDashboard, fetchPullRequestCount, fetchRepositories } from './api.js';
+import { defaultQuery, queryKey, startingQuery, type Query } from './query.js';
 import { loadSchedule, saveSchedule } from './schedule-storage.js';
 
 function browserStorage(): Storage | undefined {
@@ -14,6 +14,8 @@ export interface DashboardState {
   dashboard: Dashboard | null;
   error: string | null;
   loading: boolean;
+  notice: string | null;
+  pullRequestCount: number | null;
 }
 
 export interface DashboardActions {
@@ -22,7 +24,7 @@ export interface DashboardActions {
   retry(): void;
 }
 
-const INITIAL: DashboardState = { options: [], query: null, dashboard: null, error: null, loading: true };
+const INITIAL: DashboardState = { options: [], query: null, dashboard: null, error: null, loading: true, notice: null, pullRequestCount: null };
 
 async function resolveDashboard(cache: Map<string, Dashboard>, query: Query, refresh: boolean): Promise<Dashboard> {
   const key = queryKey(query);
@@ -49,7 +51,13 @@ function useLoader(cache: Map<string, Dashboard>, setState: SetState): Load {
         const resolved = query.workSchedule === undefined ? { ...query, workSchedule: dashboard.workSchedule ?? null } : query;
         settle({ dashboard, query: resolved });
       };
-      setState((previous) => ({ ...previous, query, loading: true, error: null }));
+      setState((previous) => ({ ...previous, query, loading: true, error: null, pullRequestCount: null }));
+      fetchPullRequestCount(query).then(
+        (pullRequestCount) => {
+          if (ticket === latest.current) setState((previous) => ({ ...previous, pullRequestCount }));
+        },
+        () => undefined,
+      );
       resolveDashboard(cache, query, refresh).then(
         settled,
         (error: Error) => settle({ error: error.message }),
@@ -63,10 +71,14 @@ function useStart(setState: SetState, load: Load): () => void {
   const start = useCallback(() => {
     setState((previous) => ({ ...previous, loading: true, error: null }));
     fetchRepositories().then(
-      (options) => {
+      async (options) => {
         const schedule = loadSchedule(browserStorage());
-        const query = { ...defaultQuery(options.map((option) => option.path), new Date()), ...(schedule === undefined ? {} : { workSchedule: schedule }) };
-        setState((previous) => ({ ...previous, options }));
+        const today = new Date();
+        const repos = options.map((option) => option.path);
+        const count = await fetchPullRequestCount(defaultQuery(repos, today)).catch(() => null);
+        const starting = startingQuery(repos, today, count);
+        const query = { ...starting.query, ...(schedule === undefined ? {} : { workSchedule: schedule }) };
+        setState((previous) => ({ ...previous, options, notice: starting.notice }));
         load(query, false);
       },
       (error: Error) => setState((previous) => ({ ...previous, loading: false, error: error.message })),
@@ -81,7 +93,13 @@ export function useDashboard(): DashboardState & DashboardActions {
   const [state, setState] = useState<DashboardState>(INITIAL);
   const load = useLoader(cache, setState);
   const start = useStart(setState, load);
-  const apply = useCallback((query: Query) => load(query, false), [load]);
+  const apply = useCallback(
+    (query: Query) => {
+      setState((previous) => ({ ...previous, notice: null }));
+      load(query, false);
+    },
+    [load],
+  );
   const refresh = useCallback(() => {
     cache.clear();
     if (state.query) load(state.query, true);

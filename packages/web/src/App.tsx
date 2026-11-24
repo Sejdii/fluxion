@@ -34,13 +34,13 @@ function ErrorPane({ message, onRetry }: { message: string; onRetry(): void }) {
   );
 }
 
-function DetailPane({ dashboard, selectedId, loading, error, onRefresh, onRetry }: { dashboard: Dashboard | null; selectedId: string | undefined; loading: boolean; error: string | null; onRefresh(): void; onRetry(): void }) {
-  if (loading) return <DetailSkeleton />;
+function DetailPane({ dashboard, selectedId, loading, error, notice, pullRequestCount, onRefresh, onRetry }: { pullRequestCount: number | null; dashboard: Dashboard | null; selectedId: string | undefined; loading: boolean; error: string | null; notice: string | null; onRefresh(): void; onRetry(): void }) {
+  if (loading) return <DetailSkeleton pullRequestCount={pullRequestCount} />;
   if (error) return <ErrorPane message={error} onRetry={onRetry} />;
   const metrics = dashboard ? inRailOrder(dashboard.metrics) : [];
   const selected = metrics.find((metric) => metric.id === selectedId) ?? metrics[0];
   if (!dashboard || !selected) return <main className="detail" />;
-  return <Detail dashboard={dashboard} metric={selected} onRefresh={onRefresh} />;
+  return <Detail dashboard={dashboard} metric={selected} notice={notice} onRefresh={onRefresh} />;
 }
 
 function AppControls({ state }: { state: DashboardState & DashboardActions }) {
@@ -62,7 +62,7 @@ export function App() {
       <Header />
       <div className="shell">
         <Rail metrics={metrics} selectedId={selectedId ?? metrics[0]?.id ?? ''} onSelect={setSelectedId} controls={controls} loading={state.loading} />
-        <DetailPane dashboard={state.dashboard} selectedId={selectedId} loading={state.loading} error={state.error} onRefresh={state.refresh} onRetry={state.retry} />
+        <DetailPane dashboard={state.dashboard} selectedId={selectedId} loading={state.loading} error={state.error} notice={state.notice} pullRequestCount={state.pullRequestCount} onRefresh={state.refresh} onRetry={state.retry} />
       </div>
     </>
   );

@@ -51,16 +51,22 @@ function Body({ metric, dashboard }: { metric: DashboardMetric; dashboard: Dashb
 interface DetailProps {
   dashboard: Dashboard;
   metric: DashboardMetric;
+  notice: string | null;
   onRefresh(): void;
 }
 
-export function Detail({ dashboard, metric, onRefresh }: DetailProps) {
+export function Detail({ dashboard, metric, notice, onRefresh }: DetailProps) {
   return (
     <main className="detail">
       <div className="detail-head">
         <h1>{nameOf(metric)}</h1>
         {metric.unit === 'hours' && dashboard.workSchedule ? <span className="muted">working hours</span> : null}
       </div>
+      {notice ? (
+        <p className="notice" role="note">
+          {notice}
+        </p>
+      ) : null}
       <Status dashboard={dashboard} onRefresh={onRefresh} />
       {dashboard.n === 0 ? <div className="empty">No merged PRs in this range</div> : <Body key={metric.id} metric={metric} dashboard={dashboard} />}
     </main>

@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { applyChoice, defaultQuery, isDayPeriodAllowed, queryKey, queryString, snapToYears, yearChoices, yearRange, yearsOf, type Query } from '../src/query.js';
+import { applyChoice, countQueryString, defaultQuery, SLOW_LOAD_PULL_REQUEST_COUNT, startingQuery, isDayPeriodAllowed, queryKey, queryString, snapToYears, yearChoices, yearRange, yearsOf, type Query } from '../src/query.js';
 
 const today = new Date('2026-11-22T15:00:00Z');
 const MAX_MONTHS = 12;
@@ -86,4 +86,23 @@ test('yearChoicesRunFromTheEarliestSupportedYearToTheCurrentYear', () => {
 
 test('yearsOfReadsTheYearsOfAnyRange', () => {
   expect(yearsOf({ since: '2025-12-01', until: '2026-11-22' })).toEqual({ from: 2025, to: 2026 });
+});
+
+test('aRepositoryAtOrBelowTheSlowLoadCountStartsWithTheDefaultRangeAndNoNotice', () => {
+  expect(startingQuery(['app'], today, SLOW_LOAD_PULL_REQUEST_COUNT)).toEqual({ query: defaultQuery(['app'], today), notice: null });
+});
+
+test('anUnknownCountStartsWithTheDefaultRangeAndNoNotice', () => {
+  expect(startingQuery(['app'], today, null)).toEqual({ query: defaultQuery(['app'], today), notice: null });
+});
+
+test('aRepositoryAboveTheSlowLoadCountStartsWithTheLastThreeMonthsAndANoticeWithTheCount', () => {
+  const starting = startingQuery(['app'], today, SLOW_LOAD_PULL_REQUEST_COUNT + 1);
+
+  expect(starting.query).toEqual({ repos: ['app'], since: '2026-09-01', until: '2026-11-22', period: 'monthly' });
+  expect(starting.notice).toContain(`${(SLOW_LOAD_PULL_REQUEST_COUNT + 1).toLocaleString('en-US')} merged PRs`);
+});
+
+test('countQueryStringSendsOnlyRepositoriesAndRange', () => {
+  expect(countQueryString(query({ repos: ['a', 'b'] }))).toBe('repos=a%2Cb&since=2026-01-01&until=2026-03-20');
 });

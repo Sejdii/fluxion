@@ -44,6 +44,7 @@ export interface FetchedPullRequest extends Omit<PullRequestActivity, 'mergedAt'
 
 export interface PullRequestSource {
   mergedPullRequests(repository: RepositoryRef, range: DateRange): Promise<PullRequestActivity[]>;
+  countMergedPullRequests(repository: RepositoryRef, range: DateRange): Promise<number>;
   pullRequest(repository: RepositoryRef, number: number): Promise<FetchedPullRequest | null>;
 }
 

@@ -79,6 +79,7 @@ input[type='date'], input[type='time'], select { background: var(--panel-raised)
 .controls-body { display: flex; flex-direction: column; gap: 12px; border: 0; margin: 0; padding: 0; min-width: 0; }
 .controls-body:disabled { opacity: 0.5; }
 .controls-body:disabled * { cursor: not-allowed; }
+.notice { margin: 0 0 12px; padding: 8px 12px; border: 1px solid var(--accent-dim); border-radius: 8px; background: var(--band); }
 .error-row { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
 .error-row .error { align-self: stretch; }
 .retry { background: var(--panel-raised); border: 1px solid var(--line); border-radius: 6px; padding: 5px 12px; cursor: pointer; }

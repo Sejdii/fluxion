@@ -36,9 +36,27 @@ function isoDate(date: Date): string {
   return date.toISOString().slice(0, DATE_LENGTH);
 }
 
-export function defaultQuery(repos: string[], today: Date): Query {
-  const since = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - (DEFAULT_MONTHS - 1), 1));
+export const SLOW_LOAD_PULL_REQUEST_COUNT = 500;
+export const SHORT_DEFAULT_MONTHS = 3;
+
+export function defaultQuery(repos: string[], today: Date, months = DEFAULT_MONTHS): Query {
+  const since = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - (months - 1), 1));
   return { repos, since: isoDate(since), until: isoDate(today), period: 'monthly' };
+}
+
+export interface Starting {
+  query: Query;
+  notice: string | null;
+}
+
+export function startingQuery(repos: string[], today: Date, count: number | null): Starting {
+  if (count === null || count <= SLOW_LOAD_PULL_REQUEST_COUNT) return { query: defaultQuery(repos, today), notice: null };
+  const notice = `The last ${DEFAULT_MONTHS} months hold ${count.toLocaleString('en-US')} merged PRs, which would be slow to load. Showing the last ${SHORT_DEFAULT_MONTHS} months instead. Pick a longer range to load more.`;
+  return { query: defaultQuery(repos, today, SHORT_DEFAULT_MONTHS), notice };
+}
+
+export function countQueryString(query: Query): string {
+  return new URLSearchParams({ repos: query.repos.join(','), since: query.since, until: query.until }).toString();
 }
 
 export function queryKey(query: Query): string {

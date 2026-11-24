@@ -34,20 +34,29 @@ export class InMemoryPullRequestSource implements PullRequestSource {
     this.byRepository.set(repositoryKey(repository), pullRequests);
   }
 
+  private mergedIn(repository: RepositoryRef, range: DateRange): PullRequestActivity[] {
+    const all = this.byRepository.get(repositoryKey(repository)) ?? [];
+    return all.filter((pr): pr is PullRequestActivity => {
+      if (pr.mergedAt === null) return false;
+      const mergeDate = pr.mergedAt.slice(0, 10);
+      return mergeDate >= range.since && mergeDate <= range.until;
+    });
+  }
+
   mergedPullRequests(repository: RepositoryRef, range: DateRange): Promise<PullRequestActivity[]> {
     this.fetches += 1;
     this.requested.push(range);
     if (this.failure) return Promise.reject(this.failure);
     const monthFailure = this.monthFailures.get(range.since.slice(0, 7));
     if (monthFailure) return Promise.reject(monthFailure);
-    const all = this.byRepository.get(repositoryKey(repository)) ?? [];
-    const inRange = all.filter((pr): pr is PullRequestActivity => {
-      if (pr.mergedAt === null) return false;
-      const mergeDate = pr.mergedAt.slice(0, 10);
-      return mergeDate >= range.since && mergeDate <= range.until;
-    });
+    const inRange = this.mergedIn(repository, range);
     if (inRange.length > this.searchLimit) return Promise.reject(new DataError(`more than ${this.searchLimit} merged pull requests`));
     return Promise.resolve(inRange);
+  }
+
+  countMergedPullRequests(repository: RepositoryRef, range: DateRange): Promise<number> {
+    if (this.failure) return Promise.reject(this.failure);
+    return Promise.resolve(this.mergedIn(repository, range).length);
   }
 
   pullRequest(repository: RepositoryRef, number: number): Promise<FetchedPullRequest | null> {

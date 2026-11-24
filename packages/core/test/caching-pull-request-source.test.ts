@@ -49,6 +49,10 @@ class CountingSource implements PullRequestSource {
     return this.inner.mergedPullRequests(repo, requested);
   }
 
+  countMergedPullRequests(repo: RepositoryRef, requested: DateRange): Promise<number> {
+    return this.inner.countMergedPullRequests(repo, requested);
+  }
+
   pullRequest(repo: RepositoryRef, number: number): Promise<FetchedPullRequest | null> {
     return this.inner.pullRequest(repo, number);
   }
@@ -161,4 +165,19 @@ test('inMemorySourceCountsTheFetchesItServes', async () => {
   await source.mergedPullRequests(repository, range);
 
   expect(source.fetches).toBe(2);
+});
+
+test('countingReturnsTheSourcesCount', async () => {
+  const caching = new CachingPullRequestSource(new CountingSource(), new InMemoryCache());
+
+  expect(await caching.countMergedPullRequests(repository, range)).toBe(1);
+});
+
+test('countingFetchesNoMonths', async () => {
+  const inner = new CountingSource();
+  const caching = new CachingPullRequestSource(inner, new InMemoryCache());
+
+  await caching.countMergedPullRequests(repository, range);
+
+  expect(inner.calls).toBe(0);
 });

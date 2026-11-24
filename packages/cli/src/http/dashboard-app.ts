@@ -1,6 +1,6 @@
 import { isAbsolute } from 'node:path';
 import { serveStatic } from '@hono/node-server/serve-static';
-import { DataError, UsageError, parseWorkSchedule, type Dashboard, type RepositoryOption, type WorkSchedule } from '@fluxion/core';
+import { DataError, UsageError, parseWorkSchedule, type Dashboard, type PullRequestCount, type RepositoryOption, type WorkSchedule } from '@fluxion/core';
 import { Hono } from 'hono';
 
 export interface DashboardQuery {
@@ -11,7 +11,14 @@ export interface DashboardQuery {
   workSchedule?: WorkSchedule | null;
 }
 
+export interface CountQuery {
+  since?: string;
+  until?: string;
+  repos?: string[];
+}
+
 export interface DashboardUseCase {
+  count(query: CountQuery): Promise<PullRequestCount>;
   query(query: DashboardQuery): Promise<Dashboard>;
   refresh(): Promise<void>;
   repositories(): Promise<RepositoryOption[]>;
@@ -48,6 +55,17 @@ function queryOf(params: URLSearchParams): DashboardQuery {
   return query;
 }
 
+function countQueryOf(params: URLSearchParams): CountQuery {
+  const query: CountQuery = {};
+  const since = params.get('since');
+  const until = params.get('until');
+  const repos = splitRepos(params.get('repos') ?? undefined);
+  if (since) query.since = since;
+  if (until) query.until = until;
+  if (repos) query.repos = repos;
+  return query;
+}
+
 export function createDashboardApp(useCase: DashboardUseCase, staticRoot: string): Hono {
   if (!isAbsolute(staticRoot)) throw new Error(`Static root must be an absolute path, got "${staticRoot}"`);
   const app = new Hono();
@@ -57,6 +75,7 @@ export function createDashboardApp(useCase: DashboardUseCase, staticRoot: string
     if (params.get('refresh') === 'true') await useCase.refresh();
     return context.json(await useCase.query(query));
   });
+  app.get('/api/pr/count', async (context) => context.json(await useCase.count(countQueryOf(new URL(context.req.url).searchParams))));
   app.get('/api/repositories', async (context) => context.json({ repositories: await useCase.repositories() }));
   app.onError((error, context) => {
     if (error instanceof UsageError) return context.json({ error: error.message }, HTTP_BAD_REQUEST);

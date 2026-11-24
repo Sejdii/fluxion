@@ -9,11 +9,14 @@ import {
 import type { GithubApi } from './github-api.js';
 import {
   GITHUB_SEARCH_RESULT_LIMIT,
+  MERGED_PULL_REQUEST_COUNT_DOCUMENT,
   MERGED_PULL_REQUESTS_DOCUMENT,
   PULL_REQUEST_DOCUMENT,
+  countVariables,
   pullRequestVariables,
   toPullRequest,
   searchVariables,
+  toCount,
   toPage,
   type RateLimit,
   type MergedPullRequestsPage,
@@ -46,6 +49,10 @@ export class GitHubPullRequestSource implements PullRequestSource {
       if (cursor && page.rateLimit.remaining < page.rateLimit.cost) throw rateLimitExhausted(page.rateLimit);
     } while (cursor);
     return found;
+  }
+
+  async countMergedPullRequests(repository: RepositoryRef, range: DateRange): Promise<number> {
+    return toCount(await this.api.executeApi(MERGED_PULL_REQUEST_COUNT_DOCUMENT, countVariables(repository, range)));
   }
 
   async pullRequest(repository: RepositoryRef, number: number): Promise<FetchedPullRequest | null> {
