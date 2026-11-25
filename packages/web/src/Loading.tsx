@@ -1,3 +1,4 @@
+import type { DashboardProgress } from '@fluxion/core';
 import { useEffect, useState, type CSSProperties } from 'react';
 
 export const SKELETON_DELAY_MS = 150;
@@ -50,12 +51,26 @@ function StatusLine({ pullRequestCount }: { pullRequestCount: number | null }) {
   );
 }
 
-export function DetailSkeleton({ pullRequestCount }: { pullRequestCount: number | null }) {
+function JobProgress({ progress: { fetchedMonths, totalMonths }, onCancel }: { progress: DashboardProgress; onCancel(): void }) {
+  const label = `${fetchedMonths} of ${totalMonths} months fetched`;
+  return (
+    <div className="job-progress">
+      <progress value={fetchedMonths} max={totalMonths} aria-label={label} />
+      <span>{label}</span>
+      <button className="retry" onClick={onCancel}>
+        Cancel
+      </button>
+    </div>
+  );
+}
+
+export function DetailSkeleton({ pullRequestCount, progress, onCancel }: { pullRequestCount: number | null; progress: DashboardProgress | null; onCancel(): void }) {
   return (
     <main className="detail" aria-busy="true">
       <div className="progress-bar loading-layer" style={LAYER_STYLE} aria-hidden="true" />
       <div className="loading-layer" style={LAYER_STYLE} data-testid="loading-layer">
         <StatusLine pullRequestCount={pullRequestCount} />
+        {progress ? <JobProgress progress={progress} onCancel={onCancel} /> : null}
         <div className="skeleton-body" aria-hidden="true">
           <span className="sk sk-title" />
           <div className="tiles">

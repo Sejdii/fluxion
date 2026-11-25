@@ -42,8 +42,10 @@ export interface FetchedPullRequest extends Omit<PullRequestActivity, 'mergedAt'
   mergedAt: string | null;
 }
 
+export type MonthListener = (month: DateRange) => void;
+
 export interface PullRequestSource {
-  mergedPullRequests(repository: RepositoryRef, range: DateRange): Promise<PullRequestActivity[]>;
+  mergedPullRequests(repository: RepositoryRef, range: DateRange, onMonthFetched?: MonthListener): Promise<PullRequestActivity[]>;
   countMergedPullRequests(repository: RepositoryRef, range: DateRange): Promise<number>;
   pullRequest(repository: RepositoryRef, number: number): Promise<FetchedPullRequest | null>;
 }

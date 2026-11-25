@@ -7,6 +7,7 @@ export const repository: RepositoryRef = { host: 'github', owner: 'acme', name: 
 export interface DashboardData {
   setPullRequests(pullRequests: FetchedPullRequest[]): Promise<void>;
   failWith(error: Error | null): void;
+  holdCurrentMonth(): () => void;
   fetches(): number;
 }
 
@@ -39,7 +40,14 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
     };
     await setPullRequests([]);
     const failWith = (error: Error | null): void => server.dashboard.source.failWith(error);
-    await use({ setPullRequests, failWith, fetches: () => server.dashboard.source.fetches });
+    const releases: (() => void)[] = [];
+    const holdCurrentMonth = (): (() => void) => {
+      const release = server.dashboard.source.holdMonth(repository, new Date().toISOString().slice(0, 7));
+      releases.push(release);
+      return release;
+    };
+    await use({ setPullRequests, failWith, holdCurrentMonth, fetches: () => server.dashboard.source.fetches });
+    releases.forEach((release) => release());
     failWith(null);
   },
 });

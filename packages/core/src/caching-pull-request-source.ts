@@ -6,6 +6,7 @@ import {
   repositoryKey,
   type DateRange,
   type FetchedPullRequest,
+  type MonthListener,
   type PullRequestActivity,
   type PullRequestSource,
   type RepositoryRef,
@@ -43,8 +44,12 @@ export class CachingPullRequestSource implements PullRequestSource {
     private readonly now: () => Date = () => new Date(),
   ) {}
 
-  async mergedPullRequests(repository: RepositoryRef, range: DateRange): Promise<PullRequestActivity[]> {
-    const months = await mapWithConcurrency(monthChunks(range), MAX_CONCURRENT_MONTHS, (month) => this.cachedMonth(repository, month));
+  async mergedPullRequests(repository: RepositoryRef, range: DateRange, onMonthFetched?: MonthListener): Promise<PullRequestActivity[]> {
+    const months = await mapWithConcurrency(monthChunks(range), MAX_CONCURRENT_MONTHS, async (month) => {
+      const pullRequests = await this.cachedMonth(repository, month);
+      onMonthFetched?.(month);
+      return pullRequests;
+    });
     return months.flat().filter(mergedWithin(range));
   }
 

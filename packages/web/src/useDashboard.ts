@@ -1,6 +1,6 @@
-import type { Dashboard, RepositoryOption } from '@fluxion/core';
-import { useCallback, type Dispatch, type SetStateAction, useEffect, useRef, useState } from 'react';
-import { fetchDashboard, fetchPullRequestCount, fetchRepositories } from './api.js';
+import type { Dashboard, DashboardProgress, RepositoryOption } from '@fluxion/core';
+import { useCallback, type Dispatch, type SetStateAction, useEffect, useMemo, useRef, useState } from 'react';
+import { fetchDashboard, fetchPullRequestCount, fetchRepositories, type LoadOptions } from './api.js';
 import { defaultQuery, queryKey, startingQuery, type Query } from './query.js';
 import { loadSchedule, saveSchedule } from './schedule-storage.js';
 
@@ -16,21 +16,24 @@ export interface DashboardState {
   loading: boolean;
   notice: string | null;
   pullRequestCount: number | null;
+  progress: DashboardProgress | null;
 }
 
 export interface DashboardActions {
   apply(query: Query): void;
   refresh(): void;
   retry(): void;
+  cancel(): void;
 }
 
-const INITIAL: DashboardState = { options: [], query: null, dashboard: null, error: null, loading: true, notice: null, pullRequestCount: null };
+const INITIAL: DashboardState = { options: [], query: null, dashboard: null, error: null, loading: true, notice: null, pullRequestCount: null, progress: null };
+const CANCELLED_MESSAGE = 'Loading cancelled.';
 
-async function resolveDashboard(cache: Map<string, Dashboard>, query: Query, refresh: boolean): Promise<Dashboard> {
+async function resolveDashboard(cache: Map<string, Dashboard>, query: Query, refresh: boolean, options: LoadOptions): Promise<Dashboard> {
   const key = queryKey(query);
   const cached = refresh ? undefined : cache.get(key);
   if (cached) return cached;
-  const dashboard = await fetchDashboard(query, refresh);
+  const dashboard = await fetchDashboard(query, refresh, options);
   cache.set(key, dashboard);
   return dashboard;
 }
@@ -38,33 +41,65 @@ async function resolveDashboard(cache: Map<string, Dashboard>, query: Query, ref
 type SetState = Dispatch<SetStateAction<DashboardState>>;
 type Load = (query: Query, refresh: boolean) => void;
 
-function useLoader(cache: Map<string, Dashboard>, setState: SetState): Load {
+interface Loader {
+  load: Load;
+  cancel(): void;
+}
+
+interface Ticket {
+  signal: AbortSignal;
+  apply(change: Partial<DashboardState>): void;
+}
+
+function useTickets(setState: SetState): { next(): Ticket; drop(): void } {
   const latest = useRef(0);
-  return useCallback(
-    (query, refresh) => {
-      const ticket = ++latest.current;
-      const settle = (change: Partial<DashboardState>) => {
-        if (ticket === latest.current) setState((previous) => ({ ...previous, loading: false, ...change }));
+  const running = useRef(new AbortController());
+  return useMemo(() => {
+    const drop = () => {
+      latest.current += 1;
+      running.current.abort();
+    };
+    const next = (): Ticket => {
+      drop();
+      running.current = new AbortController();
+      const ticket = latest.current;
+      const apply = (change: Partial<DashboardState>) => {
+        if (ticket === latest.current) setState((previous) => ({ ...previous, ...change }));
       };
-      const settled = (dashboard: Dashboard) => {
-        if (query.workSchedule !== undefined) saveSchedule(browserStorage(), query.workSchedule);
-        const resolved = query.workSchedule === undefined ? { ...query, workSchedule: dashboard.workSchedule ?? null } : query;
-        settle({ dashboard, query: resolved });
-      };
-      setState((previous) => ({ ...previous, query, loading: true, error: null, pullRequestCount: null }));
-      fetchPullRequestCount(query).then(
-        (pullRequestCount) => {
-          if (ticket === latest.current) setState((previous) => ({ ...previous, pullRequestCount }));
-        },
-        () => undefined,
-      );
-      resolveDashboard(cache, query, refresh).then(
-        settled,
-        (error: Error) => settle({ error: error.message }),
-      );
-    },
-    [cache, setState],
+      return { signal: running.current.signal, apply };
+    };
+    return { next, drop };
+  }, [setState]);
+}
+
+function loadInto(ticket: Ticket, cache: Map<string, Dashboard>, query: Query, refresh: boolean): void {
+  const settled = (dashboard: Dashboard) => {
+    if (query.workSchedule !== undefined) saveSchedule(browserStorage(), query.workSchedule);
+    const resolved = query.workSchedule === undefined ? { ...query, workSchedule: dashboard.workSchedule ?? null } : query;
+    ticket.apply({ loading: false, dashboard, query: resolved });
+  };
+  fetchPullRequestCount(query).then(
+    (pullRequestCount) => ticket.apply({ pullRequestCount }),
+    () => undefined,
   );
+  const onProgress = (progress: DashboardProgress) => ticket.apply({ progress });
+  resolveDashboard(cache, query, refresh, { signal: ticket.signal, onProgress }).then(settled, (error: Error) => ticket.apply({ loading: false, error: error.message }));
+}
+
+function useLoader(cache: Map<string, Dashboard>, setState: SetState): Loader {
+  const tickets = useTickets(setState);
+  const load = useCallback<Load>(
+    (query, refresh) => {
+      setState((previous) => ({ ...previous, query, loading: true, error: null, pullRequestCount: null, progress: null }));
+      loadInto(tickets.next(), cache, query, refresh);
+    },
+    [cache, setState, tickets],
+  );
+  const cancel = useCallback(() => {
+    tickets.drop();
+    setState((previous) => ({ ...previous, loading: false, error: CANCELLED_MESSAGE }));
+  }, [setState, tickets]);
+  return { load, cancel };
 }
 
 function useStart(setState: SetState, load: Load): () => void {
@@ -91,7 +126,7 @@ function useStart(setState: SetState, load: Load): () => void {
 export function useDashboard(): DashboardState & DashboardActions {
   const cache = useRef(new Map<string, Dashboard>()).current;
   const [state, setState] = useState<DashboardState>(INITIAL);
-  const load = useLoader(cache, setState);
+  const { load, cancel } = useLoader(cache, setState);
   const start = useStart(setState, load);
   const apply = useCallback(
     (query: Query) => {
@@ -106,5 +141,5 @@ export function useDashboard(): DashboardState & DashboardActions {
   }, [cache, load, state.query]);
   const { query } = state;
   const retry = useCallback(() => (query ? load(query, false) : start()), [load, query, start]);
-  return { ...state, apply, refresh, retry };
+  return { ...state, apply, refresh, retry, cancel };
 }

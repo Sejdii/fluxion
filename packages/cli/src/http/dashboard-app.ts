@@ -1,7 +1,8 @@
 import { isAbsolute } from 'node:path';
 import { serveStatic } from '@hono/node-server/serve-static';
-import { DataError, UsageError, parseWorkSchedule, type Dashboard, type PullRequestCount, type RepositoryOption, type WorkSchedule } from '@fluxion/core';
-import { Hono } from 'hono';
+import { DataError, UsageError, parseWorkSchedule, type Dashboard, type ProgressListener, type PullRequestCount, type RepositoryOption, type WorkSchedule } from '@fluxion/core';
+import { Hono, type Context } from 'hono';
+import { DashboardJobs, settledWithin, type Job } from './dashboard-jobs.js';
 
 export interface DashboardQuery {
   period: string;
@@ -19,12 +20,15 @@ export interface CountQuery {
 
 export interface DashboardUseCase {
   count(query: CountQuery): Promise<PullRequestCount>;
-  query(query: DashboardQuery): Promise<Dashboard>;
+  query(query: DashboardQuery, onProgress?: ProgressListener): Promise<Dashboard>;
   refresh(): Promise<void>;
   repositories(): Promise<RepositoryOption[]>;
 }
 
+const QUICK_ANSWER_MS = 1000;
+const HTTP_ACCEPTED = 202;
 const HTTP_BAD_REQUEST = 400;
+const HTTP_NOT_FOUND = 404;
 const HTTP_BAD_GATEWAY = 502;
 const HTTP_INTERNAL_ERROR = 500;
 
@@ -66,15 +70,43 @@ function countQueryOf(params: URLSearchParams): CountQuery {
   return query;
 }
 
-export function createDashboardApp(useCase: DashboardUseCase, staticRoot: string): Hono {
+function answerJob(context: Context, jobs: DashboardJobs, job: Job): Response {
+  const { outcome } = job;
+  if (!outcome) return context.json({ jobId: job.id, progress: job.progress }, HTTP_ACCEPTED);
+  jobs.forget(job);
+  if ('error' in outcome) throw outcome.error;
+  return context.json(outcome.dashboard);
+}
+
+function addJobRoutes(app: Hono, useCase: DashboardUseCase, quickAnswerMs: number): void {
+  const jobs = new DashboardJobs();
+  app.post('/api/pr/jobs', async (context) => {
+    const { query, refresh } = dashboardRequestOf(context);
+    if (refresh) await useCase.refresh();
+    const job = jobs.start((onProgress) => useCase.query(query, onProgress));
+    await settledWithin(job, quickAnswerMs);
+    return answerJob(context, jobs, job);
+  });
+  app.get('/api/pr/jobs/:id', (context) => {
+    const job = jobs.find(context.req.param('id'));
+    return job ? answerJob(context, jobs, job) : context.json({ error: 'Unknown dashboard job' }, HTTP_NOT_FOUND);
+  });
+}
+
+function dashboardRequestOf(context: Context): { query: DashboardQuery; refresh: boolean } {
+  const params = new URL(context.req.url).searchParams;
+  return { query: queryOf(params), refresh: params.get('refresh') === 'true' };
+}
+
+export function createDashboardApp(useCase: DashboardUseCase, staticRoot: string, quickAnswerMs = QUICK_ANSWER_MS): Hono {
   if (!isAbsolute(staticRoot)) throw new Error(`Static root must be an absolute path, got "${staticRoot}"`);
   const app = new Hono();
   app.get('/api/pr', async (context) => {
-    const params = new URL(context.req.url).searchParams;
-    const query = queryOf(params);
-    if (params.get('refresh') === 'true') await useCase.refresh();
+    const { query, refresh } = dashboardRequestOf(context);
+    if (refresh) await useCase.refresh();
     return context.json(await useCase.query(query));
   });
+  addJobRoutes(app, useCase, quickAnswerMs);
   app.get('/api/pr/count', async (context) => context.json(await useCase.count(countQueryOf(new URL(context.req.url).searchParams))));
   app.get('/api/repositories', async (context) => context.json({ repositories: await useCase.repositories() }));
   app.onError((error, context) => {

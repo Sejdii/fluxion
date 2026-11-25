@@ -108,6 +108,8 @@ input[type='date'], input[type='time'], select { background: var(--panel-raised)
 .sk-table-row { height: 18px; }
 .loading-status { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; min-height: 20px; margin-bottom: 14px; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
+.job-progress { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+.job-progress progress { width: 160px; accent-color: var(--accent); }
 @keyframes pulse { 0%, 100% { transform: scale(0.7); opacity: 0.5; } 50% { transform: scale(1.15); opacity: 1; } }
 .msg { display: inline-block; animation: msgfade 0.35s ease-out; }
 @keyframes msgfade { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }

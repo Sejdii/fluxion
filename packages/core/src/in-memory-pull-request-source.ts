@@ -14,6 +14,7 @@ export class InMemoryPullRequestSource implements PullRequestSource {
   private failure: Error | null = null;
   private searchLimit = Infinity;
   private readonly monthFailures = new Map<string, Error>();
+  private readonly holds = new Map<string, Promise<void>>();
   fetches = 0;
   readonly requested: DateRange[] = [];
 
@@ -34,6 +35,16 @@ export class InMemoryPullRequestSource implements PullRequestSource {
     this.byRepository.set(repositoryKey(repository), pullRequests);
   }
 
+  holdMonth(repository: RepositoryRef, month: string): () => void {
+    const key = `${repositoryKey(repository)}|${month}`;
+    let resolve!: () => void;
+    this.holds.set(key, new Promise<void>((done) => (resolve = done)));
+    return () => {
+      this.holds.delete(key);
+      resolve();
+    };
+  }
+
   private mergedIn(repository: RepositoryRef, range: DateRange): PullRequestActivity[] {
     const all = this.byRepository.get(repositoryKey(repository)) ?? [];
     return all.filter((pr): pr is PullRequestActivity => {
@@ -43,9 +54,10 @@ export class InMemoryPullRequestSource implements PullRequestSource {
     });
   }
 
-  mergedPullRequests(repository: RepositoryRef, range: DateRange): Promise<PullRequestActivity[]> {
+  async mergedPullRequests(repository: RepositoryRef, range: DateRange): Promise<PullRequestActivity[]> {
     this.fetches += 1;
     this.requested.push(range);
+    await this.holds.get(`${repositoryKey(repository)}|${range.since.slice(0, 7)}`);
     if (this.failure) return Promise.reject(this.failure);
     const monthFailure = this.monthFailures.get(range.since.slice(0, 7));
     if (monthFailure) return Promise.reject(monthFailure);

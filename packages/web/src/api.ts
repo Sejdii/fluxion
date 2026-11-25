@@ -1,7 +1,9 @@
-import type { Dashboard, RepositoryOption } from '@fluxion/core';
+import type { Dashboard, DashboardProgress, RepositoryOption } from '@fluxion/core';
 import { countQueryString, queryString, type Query } from './query.js';
 
 const GATEWAY_TIMEOUTS = [502, 504];
+const HTTP_ACCEPTED = 202;
+const JOB_POLL_MS = 500;
 const LARGE_REPOSITORY_HINT = 'The repository is probably large and the request timed out. Try a shorter time range.';
 
 function failure(response: Response): Error {
@@ -16,8 +18,42 @@ async function bodyOf<T>(response: Response): Promise<T> {
   return body as T;
 }
 
-export async function fetchDashboard(query: Query, refresh: boolean): Promise<Dashboard> {
-  return bodyOf<Dashboard>(await fetch(`/api/pr?${queryString(query, refresh)}`));
+export interface LoadOptions {
+  signal?: AbortSignal;
+  onProgress?(progress: DashboardProgress): void;
+  pollMs?: number;
+}
+
+interface RunningJob {
+  jobId: string;
+  progress: DashboardProgress | null;
+}
+
+function pause(milliseconds: number, signal: AbortSignal | undefined): Promise<void> {
+  return new Promise((resolve, reject) => {
+    signal?.throwIfAborted();
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(signal?.reason);
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, milliseconds);
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+export async function fetchDashboard(query: Query, refresh: boolean, { signal, onProgress, pollMs = JOB_POLL_MS }: LoadOptions = {}): Promise<Dashboard> {
+  const init = signal ? { signal } : {};
+  let response = await fetch(`/api/pr/jobs?${queryString(query, refresh)}`, { ...init, method: 'POST' });
+  while (response.status === HTTP_ACCEPTED) {
+    const job = await bodyOf<RunningJob>(response);
+    if (job.progress) onProgress?.(job.progress);
+    await pause(pollMs, signal);
+    response = await fetch(`/api/pr/jobs/${job.jobId}`, init);
+  }
+  return bodyOf<Dashboard>(response);
 }
 
 export async function fetchPullRequestCount(query: Query): Promise<number> {
