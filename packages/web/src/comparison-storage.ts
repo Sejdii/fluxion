@@ -1,16 +1,16 @@
 import type { ComparisonMode } from '@fluxion/core';
-import { COMPARISON_CHOICES, DEFAULT_COMPARISON } from './query.js';
+import { COMPARISON_MODES } from './query.js';
 
 const KEY = 'fluxion.compare';
 
 type Stored = Pick<Storage, 'getItem' | 'setItem'>;
 
-export function loadComparisonMode(storage: Stored | undefined): ComparisonMode {
+export function loadComparisonMode(storage: Stored | undefined): ComparisonMode | undefined {
   try {
     const stored = storage?.getItem(KEY);
-    return COMPARISON_CHOICES.find(({ value }) => value === stored)?.value ?? DEFAULT_COMPARISON;
+    return COMPARISON_MODES.find((mode) => mode === stored);
   } catch {
-    return DEFAULT_COMPARISON;
+    return undefined;
   }
 }
 

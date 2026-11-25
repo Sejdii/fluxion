@@ -193,6 +193,15 @@ test('turningTheComparisonOffSaysSoAndSurvivesAReload', async ({ page, data }) =
   await expect(page.getByRole('radio', { name: 'Never' })).toBeChecked();
 });
 
+test('openingTheDashboardRemembersNoComparisonChoice', async ({ page, data }) => {
+  await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
+
+  await openDashboard(page);
+
+  await expect(page.getByRole('radio', { name: 'Always' })).toBeChecked();
+  expect(await page.evaluate(() => Object.keys(localStorage))).toEqual([]);
+});
+
 test('workScheduleSettingsApplyAndSurviveAReload', async ({ page, data }) => {
   await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
   await openDashboard(page);

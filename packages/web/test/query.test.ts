@@ -5,11 +5,11 @@ const today = new Date('2026-11-22T15:00:00Z');
 const MAX_MONTHS = 12;
 
 function query(overrides: Partial<Query> = {}): Query {
-  return { repos: ['app'], since: '2026-01-01', until: '2026-03-20', period: 'monthly', compare: 'always', ...overrides };
+  return { repos: ['app'], since: '2026-01-01', until: '2026-03-20', period: 'monthly', ...overrides };
 }
 
 test('defaultQueryCoversTheLastTwelveMonthsMonthlyFromTheStartingRepositories', () => {
-  expect(defaultQuery(['app', 'api'], today)).toEqual({ repos: ['app', 'api'], since: '2025-12-01', until: '2026-11-22', period: 'monthly', compare: 'always' });
+  expect(defaultQuery(['app', 'api'], today)).toEqual({ repos: ['app', 'api'], since: '2025-12-01', until: '2026-11-22', period: 'monthly' });
 });
 
 test('defaultRangeIsTheSameWhateverThePeriodLaterBecomes', () => {
@@ -27,7 +27,7 @@ test('queryKeyDiffersWhenOnlyThePeriodDiffers', () => {
 });
 
 test('queryStringSendsEveryPartOfTheQuery', () => {
-  expect(queryString(query({ repos: ['a', 'b'] }), false)).toBe('repos=a%2Cb&since=2026-01-01&until=2026-03-20&period=monthly&compare=always');
+  expect(queryString(query({ repos: ['a', 'b'] }), false)).toBe('repos=a%2Cb&since=2026-01-01&until=2026-03-20&period=monthly');
 });
 
 test('queryStringCanAskForARefresh', () => {
@@ -99,7 +99,7 @@ test('anUnknownCountStartsWithTheDefaultRangeAndNoNotice', () => {
 test('aRepositoryAboveTheSlowLoadCountStartsWithTheLastThreeMonthsAndANoticeWithTheCount', () => {
   const starting = startingQuery(['app'], today, SLOW_LOAD_PULL_REQUEST_COUNT + 1);
 
-  expect(starting.query).toEqual({ repos: ['app'], since: '2026-09-01', until: '2026-11-22', period: 'monthly', compare: 'always' });
+  expect(starting.query).toEqual({ repos: ['app'], since: '2026-09-01', until: '2026-11-22', period: 'monthly' });
   expect(starting.notice).toContain(`${(SLOW_LOAD_PULL_REQUEST_COUNT + 1).toLocaleString('en-US')} merged PRs`);
 });
 

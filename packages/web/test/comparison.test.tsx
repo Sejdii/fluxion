@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { expect, test } from 'vitest';
 import { loadComparisonMode, saveComparisonMode } from '../src/comparison-storage.js';
 import { Controls } from '../src/Controls.js';
-import { defaultQuery, queryKey, queryString, type Query } from '../src/query.js';
+import { queryKey, queryString, type Query } from '../src/query.js';
 import { Rail } from '../src/Rail.js';
 import { Tiles } from '../src/Tiles.js';
 
@@ -44,12 +44,12 @@ test('aSavedComparisonModeComesBack', () => {
   expect(loadComparisonMode(storage)).toBe('never');
 });
 
-test.each([[undefined], ['sometimes']])('anUnusableStoredComparisonModeMeansAlways%#', (stored) => {
-  expect(loadComparisonMode(memory(stored))).toBe('always');
+test.each([[undefined], ['sometimes']])('anUnusableStoredComparisonModeMeansNoChoice%#', (stored) => {
+  expect(loadComparisonMode(memory(stored))).toBeUndefined();
 });
 
-test('theStartingQueryAlwaysCompares', () => {
-  expect(defaultQuery(['app'], new Date('2026-03-20T10:00:00Z')).compare).toBe('always');
+test('queryStringLeavesAnUnchosenComparisonModeToTheServer', () => {
+  expect(queryString({ repos: ['app'], since: '2026-01-01', until: '2026-02-01', period: 'monthly' }, false)).not.toContain('compare');
 });
 
 test('queryStringSendsTheComparisonMode', () => {

@@ -75,7 +75,7 @@ function useTickets(setState: SetState): { next(): Ticket; drop(): void } {
 
 function loadInto(ticket: Ticket, cache: Map<string, Dashboard>, query: Query, refresh: boolean): void {
   const settled = (dashboard: Dashboard) => {
-    saveComparisonMode(browserStorage(), query.compare);
+    if (query.compare !== undefined) saveComparisonMode(browserStorage(), query.compare);
     if (query.workSchedule !== undefined) saveSchedule(browserStorage(), query.workSchedule);
     const resolved = query.workSchedule === undefined ? { ...query, workSchedule: dashboard.workSchedule ?? null } : query;
     ticket.apply({ loading: false, dashboard, query: resolved });
