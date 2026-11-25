@@ -2,7 +2,7 @@ import { afterEach, expect, test, vi } from 'vitest';
 import { fetchDashboard } from '../src/api.js';
 import type { Query } from '../src/query.js';
 
-const query: Query = { repos: ['app'], since: '2025-01-01', until: '2026-11-22', period: 'monthly' };
+const query: Query = { repos: ['app'], since: '2025-01-01', until: '2026-11-22', period: 'monthly', compare: 'always' };
 
 function respond(status: number, body: string) {
   vi.stubGlobal('fetch', async () => new Response(body, { status }));

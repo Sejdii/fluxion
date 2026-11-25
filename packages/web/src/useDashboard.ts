@@ -1,5 +1,6 @@
 import type { Dashboard, DashboardProgress, RepositoryOption } from '@fluxion/core';
 import { useCallback, type Dispatch, type SetStateAction, useEffect, useMemo, useRef, useState } from 'react';
+import { loadComparisonMode, saveComparisonMode } from './comparison-storage.js';
 import { fetchDashboard, fetchPullRequestCount, fetchRepositories, type LoadOptions } from './api.js';
 import { defaultQuery, queryKey, startingQuery, type Query } from './query.js';
 import { loadSchedule, saveSchedule } from './schedule-storage.js';
@@ -74,6 +75,7 @@ function useTickets(setState: SetState): { next(): Ticket; drop(): void } {
 
 function loadInto(ticket: Ticket, cache: Map<string, Dashboard>, query: Query, refresh: boolean): void {
   const settled = (dashboard: Dashboard) => {
+    saveComparisonMode(browserStorage(), query.compare);
     if (query.workSchedule !== undefined) saveSchedule(browserStorage(), query.workSchedule);
     const resolved = query.workSchedule === undefined ? { ...query, workSchedule: dashboard.workSchedule ?? null } : query;
     ticket.apply({ loading: false, dashboard, query: resolved });
@@ -112,7 +114,7 @@ function useStart(setState: SetState, load: Load): () => void {
         const repos = options.map((option) => option.path);
         const count = await fetchPullRequestCount(defaultQuery(repos, today)).catch(() => null);
         const starting = startingQuery(repos, today, count);
-        const query = { ...starting.query, ...(schedule === undefined ? {} : { workSchedule: schedule }) };
+        const query = { ...starting.query, compare: loadComparisonMode(browserStorage()), ...(schedule === undefined ? {} : { workSchedule: schedule }) };
         setState((previous) => ({ ...previous, options, notice: starting.notice }));
         load(query, false);
       },

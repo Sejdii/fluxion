@@ -92,7 +92,7 @@ function Periods({ applied, dayAllowed, maxMonths, onPick }: { applied: Query; d
 }
 
 function isApplicable(draft: Query, applied: Query): boolean {
-  const changed = draft.repos.join() !== applied.repos.join() || draft.since !== applied.since || draft.until !== applied.until || scheduleKey(draft.workSchedule) !== scheduleKey(applied.workSchedule);
+  const changed = draft.repos.join() !== applied.repos.join() || draft.since !== applied.since || draft.until !== applied.until || scheduleKey(draft.workSchedule) !== scheduleKey(applied.workSchedule) || draft.compare !== applied.compare;
   return changed && draft.repos.length > 0 && draft.since !== '' && draft.until !== '' && draft.since <= draft.until && isValidSchedule(draft.workSchedule);
 }
 
@@ -115,7 +115,7 @@ export function Controls({ options, applied, dayPeriodMaxMonths, today, onApply,
       <fieldset className="controls-body" disabled={disabled}>
         <Repositories options={options} repos={draft.repos} onChange={(repos) => change({ repos })} />
         {applied.period === 'yearly' ? <Years draft={draft} today={today} onChange={change} /> : <Dates draft={draft} onChange={change} />}
-        <Settings schedule={draft.workSchedule ?? null} onChange={(workSchedule) => change({ workSchedule })} />
+        <Settings schedule={draft.workSchedule ?? null} onChange={(workSchedule) => change({ workSchedule })} compare={draft.compare} onCompareChange={(compare) => change({ compare })} />
         <button className="apply" disabled={!isApplicable(draft, applied)} onClick={apply}>
           Apply
         </button>

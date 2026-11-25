@@ -25,7 +25,7 @@ test.each([[undefined], ['not json'], ['{"days":[]}'], [JSON.stringify({ ...sche
   expect(loadSchedule(stored === undefined ? memory() : memory(stored))).toBeUndefined();
 });
 
-const query: Query = { repos: ['app'], since: '2026-01-01', until: '2026-02-01', period: 'monthly' };
+const query: Query = { repos: ['app'], since: '2026-01-01', until: '2026-02-01', period: 'monthly', compare: 'always' };
 
 test('queryStringCarriesTheSchedule', () => {
   const params = new URLSearchParams(queryString({ ...query, workSchedule: schedule }, false));

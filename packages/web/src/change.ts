@@ -1,4 +1,4 @@
-import type { DashboardMetric, DashboardSummary, DateRange } from '@fluxion/core';
+import type { ComparisonSkip, DashboardMetric, DashboardSummary, DateRange } from '@fluxion/core';
 import { formatValue } from './format.js';
 import { preferenceOf, type Preference } from './metrics.js';
 
@@ -17,6 +17,8 @@ export interface ChangeContext {
 export type Change =
   | { available: true; percent: number; arrow: '▲' | '▼' | '●'; tone: Tone; text: string; sentence: string; short: string }
   | { available: false; reason: string; sentence: string };
+
+const SKIP_REASONS: Record<ComparisonSkip['skipped'], string> = { turnedOff: 'the comparison is turned off in Settings' };
 
 const STATISTIC_LABELS: Record<Statistic, string> = { median: 'Median', p90: 'p90', total: 'Total', n: 'Merged PRs' };
 
@@ -49,11 +51,16 @@ function toneOf(percent: number, preference: Preference): Tone {
   return (percent > 0) === (preference === 'higher') ? 'good' : 'bad';
 }
 
+function unavailable(reason: string): Change {
+  return { available: false, reason, sentence: `No comparison: ${reason}.` };
+}
+
 export function changeOf(statistic: Statistic, context: ChangeContext): Change {
   const { metric, previousRange, lowSampleThreshold } = context;
   const { current, previous } = metric.tiles;
+  if ('skipped' in previous) return unavailable(SKIP_REASONS[previous.skipped]);
   const reason = unavailableReason(statistic, current, previous, lowSampleThreshold);
-  if (reason !== null) return { available: false, reason, sentence: `No comparison: ${reason}.` };
+  if (reason !== null) return unavailable(reason);
   const now = valueOf(current, statistic) as number;
   const before = valueOf(previous, statistic) as number;
   const percent = Math.round(((now - before) / before) * PERCENT);

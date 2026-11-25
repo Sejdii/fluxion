@@ -129,3 +129,9 @@ test('theResultThatFinishedFirstIsForgottenOnceTooManyAreKept', async () => {
 
   expect([(await api.poll(started[0]?.body.jobId ?? '')).status, (await api.poll(started[1]?.body.jobId ?? '')).status]).toEqual([200, 404]);
 });
+
+test('startingAJobWithAnUnknownComparisonModeIsABadRequest', async () => {
+  const api = harness();
+
+  expect(await api.start('period=monthly&compare=sometimes')).toEqual({ status: 400, body: { error: 'Unknown comparison mode "sometimes". Use always, never' } });
+});

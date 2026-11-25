@@ -1,4 +1,4 @@
-import type { Weekday, WorkSchedule } from '@fluxion/core';
+import type { ComparisonMode, Weekday, WorkSchedule } from '@fluxion/core';
 
 export type Period = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
@@ -13,7 +13,14 @@ export interface Query extends Range {
   repos: string[];
   period: Period;
   workSchedule?: ScheduleChoice;
+  compare: ComparisonMode;
 }
+
+export const COMPARISON_CHOICES: { value: ComparisonMode; label: string }[] = [
+  { value: 'always', label: 'Always' },
+  { value: 'never', label: 'Never' },
+];
+export const DEFAULT_COMPARISON: ComparisonMode = 'always';
 
 export const WEEKDAYS: Weekday[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
@@ -41,7 +48,7 @@ export const SHORT_DEFAULT_MONTHS = 3;
 
 export function defaultQuery(repos: string[], today: Date, months = DEFAULT_MONTHS): Query {
   const since = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - (months - 1), 1));
-  return { repos, since: isoDate(since), until: isoDate(today), period: 'monthly' };
+  return { repos, since: isoDate(since), until: isoDate(today), period: 'monthly', compare: DEFAULT_COMPARISON };
 }
 
 export interface Starting {
@@ -60,7 +67,7 @@ export function countQueryString(query: Query): string {
 }
 
 export function queryKey(query: Query): string {
-  return [[...query.repos].sort().join(','), query.since, query.until, query.period, scheduleKey(query.workSchedule)].join('|');
+  return [[...query.repos].sort().join(','), query.since, query.until, query.period, scheduleKey(query.workSchedule), query.compare].join('|');
 }
 
 export function selectionKey(query: Query): string {
@@ -68,7 +75,7 @@ export function selectionKey(query: Query): string {
 }
 
 export function queryString(query: Query, refresh: boolean): string {
-  const params = new URLSearchParams({ repos: query.repos.join(','), since: query.since, until: query.until, period: query.period });
+  const params = new URLSearchParams({ repos: query.repos.join(','), since: query.since, until: query.until, period: query.period, compare: query.compare });
   const schedule = query.workSchedule;
   if (schedule === null) params.set('workSchedule', 'off');
   if (schedule) {

@@ -1,11 +1,13 @@
-import type { Weekday, WorkSchedule } from '@fluxion/core';
-import { defaultSchedule, WEEKDAYS } from './query.js';
+import type { ComparisonMode, Weekday, WorkSchedule } from '@fluxion/core';
+import { COMPARISON_CHOICES, defaultSchedule, WEEKDAYS } from './query.js';
 
 const DAY_LABELS: Record<Weekday, string> = { mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat', sun: 'Sun' };
 
 interface SettingsProps {
   schedule: WorkSchedule | null;
   onChange(schedule: WorkSchedule | null): void;
+  compare: ComparisonMode;
+  onCompareChange(compare: ComparisonMode): void;
 }
 
 export function describeSchedule(schedule: WorkSchedule): string {
@@ -52,10 +54,25 @@ function Hours({ schedule, onChange }: { schedule: WorkSchedule; onChange(schedu
   );
 }
 
-export function Settings({ schedule, onChange }: SettingsProps) {
+function Comparison({ compare, onChange }: { compare: ComparisonMode; onChange(compare: ComparisonMode): void }) {
+  return (
+    <fieldset className="field">
+      <legend className="label">Compare with previous range</legend>
+      {COMPARISON_CHOICES.map(({ value, label }) => (
+        <label key={value} className="check">
+          <input type="radio" name="compare" checked={compare === value} onChange={() => onChange(value)} />
+          {label}
+        </label>
+      ))}
+    </fieldset>
+  );
+}
+
+export function Settings({ schedule, onChange, compare, onCompareChange }: SettingsProps) {
   return (
     <fieldset className="field settings" aria-label="Settings">
       <legend className="label">Settings</legend>
+      <Comparison compare={compare} onChange={onCompareChange} />
       <label className="check">
         <input type="checkbox" checked={schedule !== null} onChange={(event) => onChange(event.target.checked ? defaultSchedule() : null)} />
         Measure in working time
