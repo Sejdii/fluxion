@@ -4,7 +4,8 @@ import { expect, test } from './fixtures.js';
 import { metricRow, openDashboard, recentPullRequests } from './pull-requests.js';
 import { SLOW_LOAD_PULL_REQUEST_COUNT } from '../packages/web/src/query.js';
 
-const API = '**/api/pr?*';
+const API = '**/api/pr/jobs?*';
+const PROGRESS = /\d+ of \d+ months fetched/;
 
 function period(page: Page, name: string) {
   return page.getByRole('group', { name: 'Period' }).getByRole('button', { name });
@@ -109,4 +110,45 @@ test('aRangeBelowTheSlowLoadCountShowsNoNotice', async ({ page, data }) => {
   await openDashboard(page);
 
   await expect(page.getByRole('note')).toHaveCount(0);
+});
+
+test('aSlowLoadShowsItsProgressUntilTheDataArrives', async ({ page, data }) => {
+  await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
+  const release = data.holdCurrentMonth();
+
+  await page.goto('/');
+
+  await expect(page.getByText(PROGRESS)).toBeVisible();
+  release();
+  await expect(metricRow(page, 'PR size')).toContainText('30');
+  await expect(page.getByText(PROGRESS)).toHaveCount(0);
+});
+
+test('aSlowLoadThatFailsShowsTheErrorAndRetryLoadsTheData', async ({ page, data }) => {
+  await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
+  const release = data.holdCurrentMonth();
+  await page.goto('/');
+  await expect(page.getByText(PROGRESS)).toBeVisible();
+
+  data.failWith(new DataError('boom'));
+  release();
+
+  await expect(page.getByRole('alert')).toContainText('boom');
+  data.failWith(null);
+  await page.getByRole('button', { name: 'Retry' }).click();
+  await expect(metricRow(page, 'PR size')).toContainText('30');
+});
+
+test('cancellingASlowLoadEnablesTheControlsAndRetryLoadsTheData', async ({ page, data }) => {
+  await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
+  const release = data.holdCurrentMonth();
+  await page.goto('/');
+
+  await page.getByRole('button', { name: 'Cancel' }).click();
+
+  await expect(page.getByRole('alert')).toContainText('Loading cancelled.');
+  await expect(period(page, 'Month')).toBeEnabled();
+  release();
+  await page.getByRole('button', { name: 'Retry' }).click();
+  await expect(metricRow(page, 'PR size')).toContainText('30');
 });

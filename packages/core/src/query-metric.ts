@@ -1,3 +1,4 @@
+import type { RepositoryMonthListener } from './dashboard-progress.js';
 import { isLowSample } from './low-sample.js';
 import { DataError, UsageError } from './errors.js';
 import { displayName, type PullRequestActivity, type PullRequestSource, type DateRange, type RepositoryFinder, type RepositoryRef } from './pull-request-source.js';
@@ -68,17 +69,17 @@ function rowsOf(definition: MetricDefinition, statistic: string, buckets: Period
   });
 }
 
-async function fetchNamed(source: PullRequestSource, repository: RepositoryRef, range: DateRange): Promise<PullRequestActivity[]> {
+async function fetchNamed(source: PullRequestSource, repository: RepositoryRef, range: DateRange, onMonthFetched?: RepositoryMonthListener): Promise<PullRequestActivity[]> {
   try {
-    return await source.mergedPullRequests(repository, range);
+    return await source.mergedPullRequests(repository, range, (month) => onMonthFetched?.(repository, month));
   } catch (error) {
     if (error instanceof DataError) throw new DataError(`${displayName(repository)}: ${error.message}`, { cause: error });
     throw error;
   }
 }
 
-export async function pooledPullRequests(source: PullRequestSource, repositories: RepositoryRef[], range: DateRange): Promise<PullRequestActivity[]> {
-  const perRepository = await Promise.all(repositories.map((repository) => fetchNamed(source, repository, range)));
+export async function pooledPullRequests(source: PullRequestSource, repositories: RepositoryRef[], range: DateRange, onMonthFetched?: RepositoryMonthListener): Promise<PullRequestActivity[]> {
+  const perRepository = await Promise.all(repositories.map((repository) => fetchNamed(source, repository, range, onMonthFetched)));
   return perRepository.flat();
 }
 

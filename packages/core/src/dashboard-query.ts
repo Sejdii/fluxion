@@ -1,3 +1,4 @@
+import { trackMonths, type ProgressListener } from './dashboard-progress.js';
 import { isLowSample, LOW_SAMPLE_THRESHOLD } from './low-sample.js';
 import { UsageError } from './errors.js';
 import { bucketsOf } from './periods.js';
@@ -68,7 +69,7 @@ function metricOf(definition: MetricDefinition, pools: Pools, now: Date): Dashbo
   return definition.unit ? { id: definition.id, unit: definition.unit, rows, tiles } : { id: definition.id, rows, tiles };
 }
 
-export async function queryDashboard(ports: MetricPorts, request: DashboardRequest, now: Date): Promise<Dashboard> {
+export async function queryDashboard(ports: MetricPorts, request: DashboardRequest, now: Date, onProgress: ProgressListener = () => undefined): Promise<Dashboard> {
   const definitions = definitionsOf(request.family);
   if (definitions.length === 0) throw new UsageError(`Unknown family "${request.family}"`);
   checkPeriod(request.period);
@@ -78,8 +79,9 @@ export async function queryDashboard(ports: MetricPorts, request: DashboardReque
   }
   const previousRange = previousRangeOf(range);
   const repositories = await ports.repositories.find();
-  const current = await pooledPullRequests(ports.pullRequests, repositories, range);
-  const previous = await pooledPullRequests(ports.pullRequests, repositories, previousRange);
+  const onMonthFetched = trackMonths([range, previousRange], repositories, onProgress);
+  const current = await pooledPullRequests(ports.pullRequests, repositories, range, onMonthFetched);
+  const previous = await pooledPullRequests(ports.pullRequests, repositories, previousRange, onMonthFetched);
   const metrics = definitions.map((definition) => metricOf(definition, { period: request.period, range, current, previous, workSchedule: request.workSchedule }, now));
   return {
     range,

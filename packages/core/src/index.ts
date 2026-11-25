@@ -29,6 +29,7 @@ export type { MetricValue } from './registry.js';
 export { queryPullRequestCount } from './count-query.js';
 export type { CountRequest, PullRequestCount } from './count-query.js';
 export { queryDashboard } from './dashboard-query.js';
+export type { DashboardProgress, ProgressListener } from './dashboard-progress.js';
 export type { Dashboard, DashboardMetric, DashboardRequest, DashboardRow, DashboardSummary, RepositoryOption } from './dashboard-query.js';
 export { parseWorkSchedule } from './work-schedule.js';
 export type { Weekday, WorkSchedule, WorkScheduleInput } from './work-schedule.js';
