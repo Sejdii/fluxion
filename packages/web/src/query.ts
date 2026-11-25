@@ -1,4 +1,4 @@
-import type { Weekday, WorkSchedule } from '@fluxion/core';
+import type { ComparisonMode, Weekday, WorkSchedule } from '@fluxion/core';
 
 export type Period = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
@@ -13,7 +13,12 @@ export interface Query extends Range {
   repos: string[];
   period: Period;
   workSchedule?: ScheduleChoice;
+  compare?: ComparisonMode | undefined;
 }
+
+export const COMPARISON_LABELS: Record<ComparisonMode, string> = { always: 'Always', never: 'Never' };
+export const COMPARISON_MODES = Object.keys(COMPARISON_LABELS) as ComparisonMode[];
+export const DEFAULT_COMPARISON: ComparisonMode = 'always';
 
 export const WEEKDAYS: Weekday[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
@@ -60,7 +65,7 @@ export function countQueryString(query: Query): string {
 }
 
 export function queryKey(query: Query): string {
-  return [[...query.repos].sort().join(','), query.since, query.until, query.period, scheduleKey(query.workSchedule)].join('|');
+  return [[...query.repos].sort().join(','), query.since, query.until, query.period, scheduleKey(query.workSchedule), query.compare ?? DEFAULT_COMPARISON].join('|');
 }
 
 export function selectionKey(query: Query): string {
@@ -76,6 +81,7 @@ export function queryString(query: Query, refresh: boolean): string {
     params.set('workHours', `${schedule.start}-${schedule.end}`);
     params.set('timezone', schedule.timeZone);
   }
+  if (query.compare) params.set('compare', query.compare);
   if (refresh) params.set('refresh', 'true');
   return params.toString();
 }

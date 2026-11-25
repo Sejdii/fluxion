@@ -1,6 +1,6 @@
 import { isAbsolute } from 'node:path';
 import { serveStatic } from '@hono/node-server/serve-static';
-import { DataError, UsageError, parseWorkSchedule, type Dashboard, type ProgressListener, type PullRequestCount, type RepositoryOption, type WorkSchedule } from '@fluxion/core';
+import { DataError, UsageError, parseComparisonMode, parseWorkSchedule, type ComparisonMode, type Dashboard, type ProgressListener, type PullRequestCount, type RepositoryOption, type WorkSchedule } from '@fluxion/core';
 import { Hono, type Context } from 'hono';
 import { DashboardJobs, settledWithin, type Job } from './dashboard-jobs.js';
 
@@ -10,6 +10,7 @@ export interface DashboardQuery {
   until?: string;
   repos?: string[];
   workSchedule?: WorkSchedule | null;
+  compare?: ComparisonMode;
 }
 
 export interface CountQuery {
@@ -53,6 +54,8 @@ function queryOf(params: URLSearchParams): DashboardQuery {
   const repos = splitRepos(params.get('repos') ?? undefined);
   const workSchedule = workScheduleOf(params);
   if (workSchedule !== undefined) query.workSchedule = workSchedule;
+  const compare = params.get('compare');
+  if (compare !== null) query.compare = parseComparisonMode(compare);
   if (since) query.since = since;
   if (until) query.until = until;
   if (repos) query.repos = repos;

@@ -193,7 +193,7 @@ test('workScheduleIsAppliedToTilesAndRowsOfTheCurrentAndPreviousRange', async ()
 
   expect(waiting(plain)?.tiles.current.values.median).toBe(65);
   expect(waiting(working)?.tiles.current.values.median).toBe(1);
-  expect(waiting(working)?.tiles.previous.values.median).toBe(2);
+  expect(waiting(working)?.tiles.previous).toMatchObject({ values: { median: 2 } });
   expect(waiting(working)?.rows.at(-1)?.values.median).toBe(1);
   expect(working.workSchedule).toEqual(schedule);
 });

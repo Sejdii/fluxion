@@ -1,11 +1,13 @@
-import type { Weekday, WorkSchedule } from '@fluxion/core';
-import { defaultSchedule, WEEKDAYS } from './query.js';
+import type { ComparisonMode, Weekday, WorkSchedule } from '@fluxion/core';
+import { COMPARISON_LABELS, COMPARISON_MODES, defaultSchedule, WEEKDAYS } from './query.js';
 
 const DAY_LABELS: Record<Weekday, string> = { mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat', sun: 'Sun' };
 
 interface SettingsProps {
   schedule: WorkSchedule | null;
-  onChange(schedule: WorkSchedule | null): void;
+  onScheduleChange(schedule: WorkSchedule | null): void;
+  compare: ComparisonMode;
+  onCompareChange(compare: ComparisonMode): void;
 }
 
 export function describeSchedule(schedule: WorkSchedule): string {
@@ -52,21 +54,36 @@ function Hours({ schedule, onChange }: { schedule: WorkSchedule; onChange(schedu
   );
 }
 
-export function Settings({ schedule, onChange }: SettingsProps) {
+function Comparison({ compare, onChange }: { compare: ComparisonMode; onChange(compare: ComparisonMode): void }) {
+  return (
+    <fieldset className="field">
+      <legend className="label">Compare with previous range</legend>
+      {COMPARISON_MODES.map((mode) => (
+        <label key={mode} className="check">
+          <input type="radio" name="compare" checked={compare === mode} onChange={() => onChange(mode)} />
+          {COMPARISON_LABELS[mode]}
+        </label>
+      ))}
+    </fieldset>
+  );
+}
+
+export function Settings({ schedule, onScheduleChange, compare, onCompareChange }: SettingsProps) {
   return (
     <fieldset className="field settings" aria-label="Settings">
       <legend className="label">Settings</legend>
+      <Comparison compare={compare} onChange={onCompareChange} />
       <label className="check">
-        <input type="checkbox" checked={schedule !== null} onChange={(event) => onChange(event.target.checked ? defaultSchedule() : null)} />
+        <input type="checkbox" checked={schedule !== null} onChange={(event) => onScheduleChange(event.target.checked ? defaultSchedule() : null)} />
         Measure in working time
       </label>
       {schedule ? (
         <>
-          <Days schedule={schedule} onChange={onChange} />
-          <Hours schedule={schedule} onChange={onChange} />
+          <Days schedule={schedule} onChange={onScheduleChange} />
+          <Hours schedule={schedule} onChange={onScheduleChange} />
           <label className="field">
             <span className="label">Time zone</span>
-            <select value={schedule.timeZone} onChange={(event) => onChange({ ...schedule, timeZone: event.target.value })}>
+            <select value={schedule.timeZone} onChange={(event) => onScheduleChange({ ...schedule, timeZone: event.target.value })}>
               {timeZonesWith(schedule.timeZone).map((zone) => (
                 <option key={zone} value={zone}>
                   {zone}

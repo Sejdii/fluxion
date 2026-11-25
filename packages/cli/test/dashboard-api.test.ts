@@ -197,3 +197,27 @@ test('apiPrCountReturnsTheCountAndMapsQueryParameters', async () => {
     [{ since: '2026-01-01', until: '2026-02-01', repos: ['a', 'b'] }],
   ]);
 });
+
+test('apiPrPassesTheComparisonModeToTheUseCase', async () => {
+  const api = harness();
+
+  await api.request('/api/pr?period=monthly&compare=never');
+
+  expect(api.queries).toEqual([{ period: 'monthly', compare: 'never' }]);
+});
+
+test('apiPrUnknownComparisonModeIsABadRequestWithoutQuerying', async () => {
+  const api = harness();
+
+  const response = await api.request('/api/pr?period=monthly&compare=sometimes');
+
+  expect([response.status, await response.json(), api.queries]).toEqual([400, { error: 'Unknown comparison mode "sometimes". Use always, never' }, []]);
+});
+
+test('apiPrEmptyComparisonModeIsABadRequest', async () => {
+  const api = harness();
+
+  const response = await api.request('/api/pr?period=monthly&compare=');
+
+  expect(response.status).toBe(400);
+});

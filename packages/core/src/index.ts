@@ -13,6 +13,8 @@ export type {
   ReviewActivity,
   ReviewSubmission,
 } from './pull-request-source.js';
+export { parseComparisonMode } from './comparison.js';
+export type { ComparisonMode, ComparisonSkip } from './comparison.js';
 export { PERIODS } from './range.js';
 export { queryMetric } from './query-metric.js';
 export type { MetricPorts, MetricRequest, MetricResult, MetricRow } from './query-metric.js';

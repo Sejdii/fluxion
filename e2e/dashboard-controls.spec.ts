@@ -178,6 +178,30 @@ test('leavingYearKeepsTheRangeAndBringsBackTheDateInputs', async ({ page, data }
   await expect(page.locator('input[type="date"]').nth(1)).toHaveValue(new Date().toISOString().slice(0, 10));
 });
 
+test('turningTheComparisonOffSaysSoAndSurvivesAReload', async ({ page, data }) => {
+  await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
+  await openDashboard(page);
+  const reason = page.getByRole('button', { name: 'No comparison: the comparison is turned off in Settings.' });
+  await expect(reason).toHaveCount(0);
+
+  await page.getByRole('radio', { name: 'Never' }).check();
+  await page.getByRole('button', { name: 'Apply' }).click();
+
+  await expect(reason.first()).toBeVisible();
+  await page.reload();
+  await expect(reason.first()).toBeVisible();
+  await expect(page.getByRole('radio', { name: 'Never' })).toBeChecked();
+});
+
+test('openingTheDashboardRemembersNoComparisonChoice', async ({ page, data }) => {
+  await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
+
+  await openDashboard(page);
+
+  await expect(page.getByRole('radio', { name: 'Always' })).toBeChecked();
+  expect(await page.evaluate(() => Object.keys(localStorage))).toEqual([]);
+});
+
 test('workScheduleSettingsApplyAndSurviveAReload', async ({ page, data }) => {
   await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
   await openDashboard(page);
