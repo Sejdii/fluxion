@@ -70,10 +70,9 @@ function countQueryOf(params: URLSearchParams): CountQuery {
   return query;
 }
 
-function answerJob(context: Context, jobs: DashboardJobs, job: Job): Response {
+function answerJob(context: Context, job: Job): Response {
   const { outcome } = job;
   if (!outcome) return context.json({ jobId: job.id, progress: job.progress }, HTTP_ACCEPTED);
-  jobs.forget(job);
   if ('error' in outcome) throw outcome.error;
   return context.json(outcome.dashboard);
 }
@@ -85,11 +84,11 @@ function addJobRoutes(app: Hono, useCase: DashboardUseCase, quickAnswerMs: numbe
     if (refresh) await useCase.refresh();
     const job = jobs.start((onProgress) => useCase.query(query, onProgress));
     await settledWithin(job, quickAnswerMs);
-    return answerJob(context, jobs, job);
+    return answerJob(context, job);
   });
   app.get('/api/pr/jobs/:id', (context) => {
     const job = jobs.find(context.req.param('id'));
-    return job ? answerJob(context, jobs, job) : context.json({ error: 'Unknown dashboard job' }, HTTP_NOT_FOUND);
+    return job ? answerJob(context, job) : context.json({ error: 'Unknown dashboard job' }, HTTP_NOT_FOUND);
   });
 }
 

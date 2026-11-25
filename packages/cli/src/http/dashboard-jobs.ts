@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { Dashboard, DashboardProgress, ProgressListener } from '@fluxion/core';
 
-const MAX_UNCOLLECTED_JOBS = 20;
+const MAX_FINISHED_JOBS = 20;
 
 export type JobOutcome = { dashboard: Dashboard } | { error: unknown };
 
@@ -16,11 +16,10 @@ export class DashboardJobs {
   private readonly jobs = new Map<string, Job>();
 
   start(query: (onProgress: ProgressListener) => Promise<Dashboard>): Job {
-    this.forgetOldestUncollected();
     const job: Job = { id: randomUUID(), progress: null, outcome: null, settled: Promise.resolve() };
     job.settled = query((progress) => (job.progress = progress)).then(
-      (dashboard) => void (job.outcome = { dashboard }),
-      (error: unknown) => void (job.outcome = { error }),
+      (dashboard) => this.finish(job, { dashboard }),
+      (error: unknown) => this.finish(job, { error }),
     );
     this.jobs.set(job.id, job);
     return job;
@@ -30,13 +29,16 @@ export class DashboardJobs {
     return this.jobs.get(id);
   }
 
-  forget(job: Job): void {
+  private finish(job: Job, outcome: JobOutcome): void {
+    job.outcome = outcome;
     this.jobs.delete(job.id);
+    this.jobs.set(job.id, job);
+    this.forgetEarliestFinished();
   }
 
-  private forgetOldestUncollected(): void {
-    const settled = [...this.jobs.values()].filter((job) => job.outcome !== null);
-    settled.slice(0, Math.max(0, settled.length - MAX_UNCOLLECTED_JOBS + 1)).forEach((job) => this.forget(job));
+  private forgetEarliestFinished(): void {
+    const finished = [...this.jobs.values()].filter((job) => job.outcome !== null);
+    finished.slice(0, -MAX_FINISHED_JOBS).forEach((job) => this.jobs.delete(job.id));
   }
 }
 

@@ -57,7 +57,7 @@ function JobProgress({ progress: { fetchedMonths, totalMonths }, onCancel }: { p
     <div className="job-progress">
       <progress value={fetchedMonths} max={totalMonths} aria-label={label} />
       <span>{label}</span>
-      <button className="retry" onClick={onCancel}>
+      <button className="cancel" onClick={onCancel}>
         Cancel
       </button>
     </div>

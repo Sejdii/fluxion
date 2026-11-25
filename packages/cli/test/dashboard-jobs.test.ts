@@ -91,13 +91,19 @@ test('aFailedJobAnswersWithTheSameErrorAsTheQuery', async () => {
   expect(await api.poll(body.jobId)).toEqual({ status: 502, body: { error: 'acme/app: boom' } });
 });
 
-test('aDeliveredJobIsForgotten', async () => {
+test('aDeliveredResultCanBeAskedForAgainInCaseTheResponseWasLost', async () => {
   const api = harness();
   const { body } = await api.start();
   await api.queries[0]?.succeed();
   await api.poll(body.jobId);
 
-  expect(await api.poll(body.jobId)).toEqual({ status: 404, body: { error: 'Unknown dashboard job' } });
+  expect(await api.poll(body.jobId)).toEqual({ status: 200, body: dashboard });
+});
+
+test('anUnknownJobIsNotFound', async () => {
+  const api = harness();
+
+  expect(await api.poll('nope')).toEqual({ status: 404, body: { error: 'Unknown dashboard job' } });
 });
 
 test('startingAJobWithoutPeriodIsABadRequest', async () => {
@@ -114,12 +120,12 @@ test('startingAJobWithRefreshClearsTheServerCache', async () => {
   expect(api.state.refreshes).toBe(1);
 });
 
-test('theOldestUncollectedJobIsForgottenOnceTooManyPileUp', async () => {
+test('theResultThatFinishedFirstIsForgottenOnceTooManyAreKept', async () => {
   const api = harness();
-  const started = await Promise.all(Array.from({ length: 20 }, () => api.start()));
-  await Promise.all(api.queries.map((query) => query.succeed()));
+  const started = await Promise.all(Array.from({ length: 21 }, () => api.start()));
+  await Promise.all(api.queries.slice(1).map((query) => query.succeed()));
 
-  await api.start();
+  await api.queries[0]?.succeed();
 
-  expect([(await api.poll(started[0]?.body.jobId ?? '')).status, (await api.poll(started[1]?.body.jobId ?? '')).status]).toEqual([404, 200]);
+  expect([(await api.poll(started[0]?.body.jobId ?? '')).status, (await api.poll(started[1]?.body.jobId ?? '')).status]).toEqual([200, 404]);
 });

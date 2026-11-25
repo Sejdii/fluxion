@@ -82,7 +82,7 @@ input[type='date'], input[type='time'], select { background: var(--panel-raised)
 .notice { margin: 0 0 12px; padding: 8px 12px; border: 1px solid var(--accent-dim); border-radius: 8px; background: var(--band); }
 .error-row { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
 .error-row .error { align-self: stretch; }
-.retry { background: var(--panel-raised); border: 1px solid var(--line); border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+.retry, .cancel { background: var(--panel-raised); border: 1px solid var(--line); border-radius: 6px; padding: 5px 12px; cursor: pointer; }
 .detail { position: relative; }
 .loading-layer { opacity: 0; animation: fadein 0.25s ease-out var(--delay, 150ms) forwards; }
 @keyframes fadein { to { opacity: 1; } }

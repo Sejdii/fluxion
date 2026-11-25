@@ -18,7 +18,7 @@ function setup(...repositories: RepositoryRef[]) {
   const source = new InMemoryPullRequestSource();
   const ports = { pullRequests: new CachingPullRequestSource(source, new InMemoryCache(), () => now), repositories: new InMemoryRepositoryFinder(...repositories) };
   const reported: DashboardProgress[] = [];
-  const run = () => queryDashboard(ports, request, now, (progress) => reported.push(progress));
+  const run = (since = request.since) => queryDashboard(ports, { ...request, since }, now, (progress) => reported.push(progress));
   return { source, reported, run };
 }
 
@@ -54,11 +54,9 @@ test('shouldCountAMonthOnlyOnceEveryRepositoryHasFetchedIt', async () => {
 });
 
 test('shouldCountAMonthSharedByBothRangesOnce', async () => {
-  const source = new InMemoryPullRequestSource();
-  const ports = { pullRequests: new CachingPullRequestSource(source, new InMemoryCache(), () => now), repositories: new InMemoryRepositoryFinder(app) };
-  const reported: DashboardProgress[] = [];
+  const { reported, run } = setup(app);
 
-  await queryDashboard(ports, { ...request, since: '2026-03-11' }, now, (progress) => reported.push(progress));
+  await run('2026-03-11');
 
   expect(reported).toEqual([
     { fetchedMonths: 0, totalMonths: 1 },
