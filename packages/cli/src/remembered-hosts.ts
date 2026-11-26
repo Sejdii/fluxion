@@ -1,5 +1,5 @@
 export interface RememberedHosts {
-  using<T>(find: (hosts: string[]) => Promise<T>): Promise<T>;
+  using<T>(find: (loadHosts: () => Promise<string[]>) => Promise<T>): Promise<T>;
 }
 
 export function rememberedHosts(load: () => Promise<string[]>): RememberedHosts {
@@ -7,7 +7,7 @@ export function rememberedHosts(load: () => Promise<string[]>): RememberedHosts 
   return {
     using: async (find) => {
       try {
-        return await find(await (hosts ??= load()));
+        return await find(() => (hosts ??= load()));
       } catch (error) {
         hosts = undefined;
         throw error;

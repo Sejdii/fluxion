@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, expect, test } from 'vitest';
 import { findRepositories, locateRepositories } from '../src/git/find-repositories.js';
 
-const HOSTS = ['github.com'];
+const HOSTS = () => Promise.resolve(['github.com']);
 
 let root: string;
 
