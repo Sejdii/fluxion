@@ -10,7 +10,7 @@ import {
   type RepositoryRef,
 } from '../src/index.js';
 
-const repository: RepositoryRef = { host: 'github', owner: 'acme', name: 'app' };
+const repository: RepositoryRef = { host: 'github.com', owner: 'acme', name: 'app' };
 const wholeYear = { since: '2025-01-01', until: '2025-12-31' };
 const MAX_AT_ONCE = 3;
 

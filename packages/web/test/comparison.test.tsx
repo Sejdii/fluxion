@@ -62,7 +62,7 @@ test('queryKeyDiffersByComparisonMode', () => {
 
 test('settingsOfferTheComparisonChoicesWithTheAppliedOneSelected', () => {
   const markup = renderToStaticMarkup(
-    <Controls options={[{ path: 'app', name: 'app' }]} applied={{ ...query, compare: 'never' }} dayPeriodMaxMonths={12} today={new Date('2026-03-20T10:00:00Z')} onApply={() => undefined} disabled={false} />,
+    <Controls options={[{ path: 'app', name: 'app', host: 'github.com' }]} applied={{ ...query, compare: 'never' }} dayPeriodMaxMonths={12} today={new Date('2026-03-20T10:00:00Z')} onApply={() => undefined} disabled={false} />,
   );
 
   expect(markup).toContain('Compare with previous range');

@@ -46,22 +46,22 @@ export class GitHubPullRequestSource implements PullRequestSource {
       if (page.issueCount > GITHUB_SEARCH_RESULT_LIMIT) throw tooManyResults(repository, range, page.issueCount);
       found.push(...page.pullRequests);
       cursor = page.nextCursor;
-      if (cursor && page.rateLimit.remaining < page.rateLimit.cost) throw rateLimitExhausted(page.rateLimit);
+      if (cursor && page.rateLimit && page.rateLimit.remaining < page.rateLimit.cost) throw rateLimitExhausted(page.rateLimit);
     } while (cursor);
     return found;
   }
 
   async countMergedPullRequests(repository: RepositoryRef, range: DateRange): Promise<number> {
-    return toCount(await this.api.executeApi(MERGED_PULL_REQUEST_COUNT_DOCUMENT, countVariables(repository, range)));
+    return toCount(await this.api.executeApi(repository.host, MERGED_PULL_REQUEST_COUNT_DOCUMENT, countVariables(repository, range)));
   }
 
   async pullRequest(repository: RepositoryRef, number: number): Promise<FetchedPullRequest | null> {
-    const data = await this.api.executeApi(PULL_REQUEST_DOCUMENT, pullRequestVariables(repository, number));
+    const data = await this.api.executeApi(repository.host, PULL_REQUEST_DOCUMENT, pullRequestVariables(repository, number));
     return toPullRequest(data);
   }
 
   private async fetchPage(repository: RepositoryRef, range: DateRange, cursor: string | null): Promise<MergedPullRequestsPage> {
-    const data = await this.api.executeApi(MERGED_PULL_REQUESTS_DOCUMENT, searchVariables(repository, range, cursor));
+    const data = await this.api.executeApi(repository.host, MERGED_PULL_REQUESTS_DOCUMENT, searchVariables(repository, range, cursor));
     return toPage(data);
   }
 }

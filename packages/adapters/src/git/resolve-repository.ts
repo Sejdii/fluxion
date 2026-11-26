@@ -7,16 +7,33 @@ function git(cwd: string, args: string[]): Promise<string> {
   });
 }
 
-const GITHUB_URL = /github\.com[:/]([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/;
+const SCHEME_URL = /^(?:https?|ssh|git):\/\/(?:[^@/\s]+@)?([^/:\s]+)(?::\d+)?\/(\S+)$/;
+const SCP_URL = /^(?:[^@/\s]+@)?([^/:\s]+):(?!\/\/)(\S+)$/;
+const REPOSITORY_PATH = /^\/?([^/]+)\/([^/]+?)(?:\.git)?\/?$/;
+const PREFERRED_REMOTE = 'origin';
 
-export function parseGitHubRemote(url: string): RepositoryRef | undefined {
-  const match = GITHUB_URL.exec(url.trim());
-  return match?.[1] && match[2] ? { host: 'github', owner: match[1], name: match[2] } : undefined;
+interface RemoteAddress {
+  host: string;
+  path: string;
+}
+
+function addressOf(url: string): RemoteAddress | undefined {
+  const match = SCHEME_URL.exec(url.trim()) ?? SCP_URL.exec(url.trim());
+  return match?.[1] && match[2] ? { host: match[1].toLowerCase(), path: match[2] } : undefined;
+}
+
+export function parseRemote(url: string, hosts: string[]): RepositoryRef | undefined {
+  const address = addressOf(url);
+  const host = hosts.find((known) => known.toLowerCase() === address?.host);
+  const [, owner, name] = REPOSITORY_PATH.exec(address?.path ?? '') ?? [];
+  return host && owner && name ? { host, owner, name } : undefined;
 }
 
 async function remoteUrls(directory: string): Promise<string[]> {
   const output = await git(directory, ['remote', '-v']);
-  return output.split('\n').map((line) => line.split(/\s+/)[1] ?? '');
+  const remotes = output.split('\n').map((line) => line.split(/\s+/));
+  const preferredFirst = [...remotes.filter(([name]) => name === PREFERRED_REMOTE), ...remotes.filter(([name]) => name !== PREFERRED_REMOTE)];
+  return preferredFirst.map(([, url]) => url ?? '');
 }
 
 export function isInsideRepository(directory: string): Promise<boolean> {
@@ -26,11 +43,18 @@ export function isInsideRepository(directory: string): Promise<boolean> {
   );
 }
 
-export async function resolveCurrentRepository(directory: string): Promise<RepositoryRef> {
+function noGitHubRemote(directory: string, urls: string[], hosts: string[]): DataError {
+  const known = new Set(hosts.map((host) => host.toLowerCase()));
+  const host = urls.map((url) => addressOf(url)?.host).find((found) => found !== undefined && !known.has(found));
+  const hint = host ? `. gh is not logged in to ${host}; if it is a GitHub host, run \`gh auth login --hostname ${host}\`` : '';
+  return new DataError(`${directory} has no GitHub remote${hint}`);
+}
+
+export async function resolveCurrentRepository(directory: string, hosts: string[]): Promise<RepositoryRef> {
   const urls = await remoteUrls(directory).catch(() => {
     throw new DataError(`${directory} is not inside a git repository`);
   });
-  const repository = urls.map(parseGitHubRemote).find((ref) => ref !== undefined);
-  if (!repository) throw new DataError(`${directory} has no GitHub remote`);
+  const repository = urls.map((url) => parseRemote(url, hosts)).find((ref) => ref !== undefined);
+  if (!repository) throw noGitHubRemote(directory, urls, hosts);
   return repository;
 }

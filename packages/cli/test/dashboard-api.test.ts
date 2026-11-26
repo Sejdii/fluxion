@@ -16,7 +16,7 @@ const dashboard: Dashboard = {
   metrics: [],
 };
 
-const options: RepositoryOption[] = [{ path: 'app', name: 'acme/app' }];
+const options: RepositoryOption[] = [{ path: 'app', name: 'acme/app', host: 'github.com' }];
 
 interface Harness {
   queries: DashboardQuery[];

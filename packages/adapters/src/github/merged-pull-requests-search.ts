@@ -83,14 +83,14 @@ export interface RateLimit {
 }
 
 export interface MergedPullRequestsPage {
-  rateLimit: RateLimit;
+  rateLimit: RateLimit | null;
   issueCount: number;
   nextCursor: string | null;
   pullRequests: PullRequestActivity[];
 }
 
 interface SearchData {
-  rateLimit: RateLimit;
+  rateLimit: RateLimit | null;
   search: {
     issueCount: number;
     pageInfo: { hasNextPage: boolean; endCursor: string | null };

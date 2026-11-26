@@ -2,7 +2,7 @@ import { test as base } from '@playwright/test';
 import { startInMemoryDashboard, type InMemoryDashboard } from '../packages/cli/src/index.js';
 import { InMemoryRepositoryFinder, type FetchedPullRequest, type RepositoryRef } from '../packages/core/src/index.js';
 
-export const repository: RepositoryRef = { host: 'github', owner: 'acme', name: 'app' };
+export const repository: RepositoryRef = { host: 'github.com', owner: 'acme', name: 'app' };
 
 export interface DashboardData {
   setPullRequests(pullRequests: FetchedPullRequest[]): Promise<void>;

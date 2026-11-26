@@ -9,8 +9,8 @@ import {
   type RepositoryRef,
 } from '../src/index.js';
 
-const app: RepositoryRef = { host: 'github', owner: 'acme', name: 'app' };
-const web: RepositoryRef = { host: 'github', owner: 'acme', name: 'web' };
+const app: RepositoryRef = { host: 'github.com', owner: 'acme', name: 'app' };
+const web: RepositoryRef = { host: 'github.com', owner: 'acme', name: 'web' };
 const now = new Date('2026-03-20T10:00:00Z');
 const request = { family: 'pr', period: 'monthly', since: '2026-02-01', until: '2026-03-20' };
 

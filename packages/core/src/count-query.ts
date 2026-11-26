@@ -2,6 +2,7 @@ import { DataError } from './errors.js';
 import { displayName, type DateRange } from './pull-request-source.js';
 import type { MetricPorts } from './query-metric.js';
 import { resolveRange } from './range.js';
+import { findOnOneHost } from './hosts.js';
 
 export interface CountRequest {
   since?: string | undefined;
@@ -15,7 +16,7 @@ export interface PullRequestCount {
 
 export async function queryPullRequestCount(ports: MetricPorts, request: CountRequest, now: Date): Promise<PullRequestCount> {
   const range = resolveRange('monthly', request.since, request.until, now);
-  const repositories = await ports.repositories.find();
+  const repositories = await findOnOneHost(ports.repositories);
   const counts = await Promise.all(
     repositories.map(async (repository) => {
       try {

@@ -8,7 +8,7 @@ import {
   type RepositoryRef,
 } from '../src/index.js';
 
-const repository: RepositoryRef = { host: 'github', owner: 'acme', name: 'app' };
+const repository: RepositoryRef = { host: 'github.com', owner: 'acme', name: 'app' };
 const mayToDate: DateRange = { since: '2026-05-01', until: '2026-05-20' };
 const MINUTE_MS = 60_000;
 const DAY_MINUTES = 24 * 60;

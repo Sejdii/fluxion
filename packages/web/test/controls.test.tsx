@@ -8,7 +8,7 @@ const today = new Date('2026-11-22T15:00:00Z');
 
 function controls(overrides: Partial<Query>): string {
   const applied: Query = { repos: ['app'], since: '2025-01-01', until: '2026-11-22', period: 'monthly', ...overrides };
-  return renderToStaticMarkup(<Controls options={[{ path: 'app', name: 'app' }]} applied={applied} dayPeriodMaxMonths={12} today={today} onApply={() => undefined} disabled={false} />);
+  return renderToStaticMarkup(<Controls options={[{ path: 'app', name: 'app', host: 'github.com' }]} applied={applied} dayPeriodMaxMonths={12} today={today} onApply={() => undefined} disabled={false} />);
 }
 
 test('yearPeriodShowsTwoYearSelectsInsteadOfDateInputs', () => {
@@ -46,4 +46,20 @@ test('settingsWithAScheduleShowDaysHoursAndTimeZone', () => {
 
 test('applyIsDisabledUntilTheScheduleChanges', () => {
   expect(controls({ workSchedule: schedule })).toContain('class="apply" disabled=""');
+});
+
+function repositories(...hosts: string[]): string {
+  const options = hosts.map((host, index) => ({ path: `repo${index}`, name: `acme/repo${index}`, host }));
+  const applied: Query = { repos: ['repo0'], since: '2025-01-01', until: '2026-11-22', period: 'monthly' };
+  return renderToStaticMarkup(<Controls options={options} applied={applied} dayPeriodMaxMonths={12} today={today} onApply={() => undefined} disabled={false} />);
+}
+
+test('repositoriesOnSeveralHostsAreGroupedUnderTheirHost', () => {
+  const markup = repositories('github.corp.example', 'github.com');
+
+  expect(markup).toMatch(/github\.com<\/legend>.*acme\/repo1.*github\.corp\.example<\/legend>.*acme\/repo0/);
+});
+
+test('repositoriesOnOneHostShowNoHost', () => {
+  expect(repositories('github.corp.example', 'github.corp.example')).not.toContain('github.corp.example');
 });

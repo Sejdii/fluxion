@@ -8,8 +8,8 @@ import {
   type RepositoryRef,
 } from '../src/index.js';
 
-const app: RepositoryRef = { host: 'github', owner: 'acme', name: 'app' };
-const api: RepositoryRef = { host: 'github', owner: 'acme', name: 'api' };
+const app: RepositoryRef = { host: 'github.com', owner: 'acme', name: 'app' };
+const api: RepositoryRef = { host: 'github.com', owner: 'acme', name: 'api' };
 const now = new Date('2026-03-20T10:00:00Z');
 
 function mergedOn(number: number, mergedAt: string | null): FetchedPullRequest {

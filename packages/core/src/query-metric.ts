@@ -6,6 +6,7 @@ import { bucketsOf, type PeriodBucket } from './periods.js';
 import { PERIODS, resolveRange } from './range.js';
 import type { WorkSchedule } from './work-schedule.js';
 import { findMetric, listMetricsOf, type MetricDefinition } from './registry.js';
+import { findOnOneHost } from './hosts.js';
 
 export interface MetricPorts {
   pullRequests: PullRequestSource;
@@ -87,7 +88,7 @@ export async function queryMetric(ports: MetricPorts, request: MetricRequest, no
   const definition = definitionFor(request);
   checkPeriod(request.period);
   const range = resolveRange(request.period, request.since, request.until, now);
-  const repositories = await ports.repositories.find();
+  const repositories = await findOnOneHost(ports.repositories);
   const pullRequests = await pooledPullRequests(ports.pullRequests, repositories, range);
   const rows = rowsOf(definition, request.statistic, bucketsOf(request.period, range, pullRequests, now), request.workSchedule);
   return {

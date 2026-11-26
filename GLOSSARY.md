@@ -2,6 +2,12 @@
 
 Fluxion measures whether a software team is getting faster, by showing trends in how pull requests move through review.
 
+## Repositories
+
+**Host**:
+The server a repository lives on, named by the hostname in its remote, such as `github.com` or a GitHub Enterprise hostname. All repositories pooled in one query are on the same host.
+_Avoid_: Server, instance, provider
+
 ## Pull request lifecycle
 
 **Merged PR**:
