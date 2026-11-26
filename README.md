@@ -9,7 +9,7 @@ Status: early. Six metrics work so far: `fluxion pr prsMerged total <period>`, `
 Requirements: Node.js 26+, [pnpm](https://pnpm.io) 12, [git](https://git-scm.com) and the [GitHub CLI](https://cli.github.com) (`gh`).
 
 ```bash
-gh auth login        # once
+gh auth login        # once; add --hostname <host> for GitHub Enterprise
 git clone https://github.com/Sejdii/fluxion.git
 cd fluxion
 pnpm install
@@ -29,7 +29,7 @@ Open a new shell after `pnpm setup`. The link points at your clone, so edits tak
 
 ## Usage
 
-Run it inside a repository that has a GitHub remote:
+Run it inside a repository that has a GitHub remote, on `github.com` or on a GitHub Enterprise host:
 
 ```bash
 fluxion pr prsMerged total monthly
@@ -59,6 +59,8 @@ Periods: `daily`, `weekly` (ISO weeks, starting Monday and labelled by that Mond
 - Pull requests are counted by UTC merge date. Both bounds are inclusive. Periods without merged PRs still appear, with `n` = 0 (and `-` instead of a value for median and p90).
 - The unfinished period is marked `(in progress)` in the table and `"inProgress": true` in JSON.
 - Repository selection: inside a git repository it is used; in a plain folder Fluxion scans downward for repositories (stopping at the first `.git`, skipping hidden folders and `node_modules`). `--repos a,b` (or a repeated flag) takes paths relative to the current folder instead.
+- A remote counts as GitHub when `gh` is logged in to its host (`gh auth status`). `origin` is used if it is one, otherwise the first other remote that is. The remote must name the real hostname, not an SSH alias, and `GH_HOST` does not change which host is called.
+- All repositories of one query must be on the same host; otherwise `metric` fails (exit `1`) and lists them by host, so narrow with `--repos`. The dashboard still starts, groups the repositories by host and selects the host with the most of them; choosing a repository on another host switches the selection to it.
 - Several repositories are pooled: their merged PRs are combined before statistics, so a median is over all PRs, not an average of per-repository medians. If one repository fails, the command fails (exit `2`) and names it on stderr.
 - `fluxion --help` and `fluxion pr --help` list the available metrics and statistics.
 - Results go to stdout and errors to stderr. Exit codes: `0` success, `1` usage mistake, `2` data problem (`gh` missing or not logged in, no git repositories found, no GitHub remote).

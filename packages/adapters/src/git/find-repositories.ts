@@ -34,14 +34,14 @@ function withoutDuplicates(located: LocatedRepository[]): LocatedRepository[] {
   return [...new Map(located.map((entry) => [repositoryKey(entry.repository), entry])).values()];
 }
 
-export async function locateRepositories(directory: string, paths?: string[]): Promise<LocatedRepository[]> {
+export async function locateRepositories(directory: string, hosts: string[], paths?: string[]): Promise<LocatedRepository[]> {
   const directories = await repositoryDirectories(directory, paths);
   const located = await Promise.all(
-    directories.map(async (found) => ({ path: relative(directory, found) || '.', repository: await resolveCurrentRepository(found) })),
+    directories.map(async (found) => ({ path: relative(directory, found) || '.', repository: await resolveCurrentRepository(found, hosts) })),
   );
   return withoutDuplicates(located);
 }
 
-export async function findRepositories(directory: string, paths?: string[]): Promise<RepositoryRef[]> {
-  return (await locateRepositories(directory, paths)).map((entry) => entry.repository);
+export async function findRepositories(directory: string, hosts: string[], paths?: string[]): Promise<RepositoryRef[]> {
+  return (await locateRepositories(directory, hosts, paths)).map((entry) => entry.repository);
 }

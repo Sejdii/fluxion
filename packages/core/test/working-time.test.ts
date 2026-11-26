@@ -11,7 +11,7 @@ import {
   type WorkSchedule,
 } from '../src/index.js';
 
-const repository: RepositoryRef = { host: 'github', owner: 'acme', name: 'app' };
+const repository: RepositoryRef = { host: 'github.com', owner: 'acme', name: 'app' };
 const now = new Date('2026-11-20T10:00:00Z');
 const reviewer: Actor = { login: 'bob', isBot: false };
 const warsawDays = parseWorkSchedule({ hours: '07:00-18:00', timeZone: 'Europe/Warsaw' });

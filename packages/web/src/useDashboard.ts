@@ -3,6 +3,7 @@ import { useCallback, type Dispatch, type SetStateAction, useEffect, useMemo, us
 import { loadComparisonMode, saveComparisonMode } from './comparison-storage.js';
 import { fetchDashboard, fetchPullRequestCount, fetchRepositories, type LoadOptions } from './api.js';
 import { defaultQuery, queryKey, startingQuery, type Query } from './query.js';
+import { preselectedRepositories } from './repositories.js';
 import { loadSchedule, saveSchedule } from './schedule-storage.js';
 
 function browserStorage(): Storage | undefined {
@@ -111,7 +112,7 @@ function useStart(setState: SetState, load: Load): () => void {
       async (options) => {
         const schedule = loadSchedule(browserStorage());
         const today = new Date();
-        const repos = options.map((option) => option.path);
+        const repos = preselectedRepositories(options);
         const count = await fetchPullRequestCount(defaultQuery(repos, today)).catch(() => null);
         const starting = startingQuery(repos, today, count);
         const query = { ...starting.query, compare: loadComparisonMode(browserStorage()), ...(schedule === undefined ? {} : { workSchedule: schedule }) };

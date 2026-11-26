@@ -5,6 +5,8 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, expect, test } from 'vitest';
 import { findRepositories, locateRepositories } from '../src/git/find-repositories.js';
 
+const HOSTS = ['github.com'];
+
 let root: string;
 
 beforeEach(() => {
@@ -30,7 +32,7 @@ test('insideARepositoryUsesThatRepositoryFromASubfolder', async () => {
   repository('app');
   mkdirSync(join(root, 'app', 'src'));
 
-  const result = await findRepositories(join(root, 'app', 'src'));
+  const result = await findRepositories(join(root, 'app', 'src'), HOSTS);
 
   expect(names(result)).toEqual(['app']);
 });
@@ -39,7 +41,7 @@ test('inAFolderScansDownwardForRepositories', async () => {
   repository('one');
   repository('group/two');
 
-  const result = await findRepositories(root);
+  const result = await findRepositories(root, HOSTS);
 
   expect(names(result)).toEqual(['group-two', 'one']);
 });
@@ -48,7 +50,7 @@ test('scanStopsAtTheFirstGitFolder', async () => {
   repository('outer');
   repository('outer/inner');
 
-  const result = await findRepositories(root);
+  const result = await findRepositories(root, HOSTS);
 
   expect(names(result)).toEqual(['outer']);
 });
@@ -58,13 +60,13 @@ test('scanSkipsHiddenFoldersAndNodeModules', async () => {
   repository('.hidden/repo');
   repository('node_modules/pkg');
 
-  const result = await findRepositories(root);
+  const result = await findRepositories(root, HOSTS);
 
   expect(names(result)).toEqual(['visible']);
 });
 
 test('folderWithoutRepositoriesIsADataError', async () => {
-  const result = findRepositories(root);
+  const result = findRepositories(root, HOSTS);
 
   await expect(result).rejects.toThrow(`No git repositories found in ${root}`);
 });
@@ -74,7 +76,7 @@ test('reposAreResolvedRelativeToTheFolder', async () => {
   repository('two');
   repository('three');
 
-  const result = await findRepositories(root, ['one', 'three']);
+  const result = await findRepositories(root, HOSTS, ['one', 'three']);
 
   expect(names(result)).toEqual(['one', 'three']);
 });
@@ -83,7 +85,7 @@ test('reposOverrideTheRepositoryTheFolderIsIn', async () => {
   repository('app');
   repository('app/nested');
 
-  const result = await findRepositories(join(root, 'app'), ['nested']);
+  const result = await findRepositories(join(root, 'app'), HOSTS, ['nested']);
 
   expect(names(result)).toEqual(['app-nested']);
 });
@@ -92,7 +94,7 @@ test('failingRepositoryInReposIsNamed', async () => {
   repository('good');
   repository('bad', '');
 
-  const result = findRepositories(root, ['good', 'bad']);
+  const result = findRepositories(root, HOSTS, ['good', 'bad']);
 
   await expect(result).rejects.toThrow(`${join(root, 'bad')} has no GitHub remote`);
 });
@@ -101,13 +103,13 @@ test('failingRepositoryFoundByScanIsNamed', async () => {
   repository('good');
   repository('bad', 'https://gitlab.com/acme/bad.git');
 
-  const result = findRepositories(root);
+  const result = findRepositories(root, HOSTS);
 
   await expect(result).rejects.toThrow(`${join(root, 'bad')} has no GitHub remote`);
 });
 
 test('missingReposPathIsADataErrorNamingIt', async () => {
-  const result = findRepositories(root, ['nope']);
+  const result = findRepositories(root, HOSTS, ['nope']);
 
   await expect(result).rejects.toThrow(`${join(root, 'nope')} is not inside a git repository`);
 });
@@ -116,16 +118,16 @@ test('twoClonesOfTheSameRepositoryArePooledOnce', async () => {
   repository('a', 'git@github.com:acme/app.git');
   repository('b', 'https://github.com/acme/app');
 
-  const result = await findRepositories(root);
+  const result = await findRepositories(root, HOSTS);
 
-  expect(result).toEqual([{ host: 'github', owner: 'acme', name: 'app' }]);
+  expect(result).toEqual([{ host: 'github.com', owner: 'acme', name: 'app' }]);
 });
 
 test('locatingRepositoriesPairsEachWithItsPathRelativeToTheFolder', async () => {
   repository('one');
   repository('group/two');
 
-  const result = await locateRepositories(root);
+  const result = await locateRepositories(root, HOSTS);
 
   expect(result.map((located) => located.path)).toEqual(['group/two', 'one']);
 });
@@ -133,7 +135,7 @@ test('locatingRepositoriesPairsEachWithItsPathRelativeToTheFolder', async () => 
 test('locatingInsideARepositoryReturnsTheCurrentFolderPath', async () => {
   repository('app');
 
-  const result = await locateRepositories(join(root, 'app'));
+  const result = await locateRepositories(join(root, 'app'), HOSTS);
 
   expect(result.map((located) => located.path)).toEqual(['.']);
 });

@@ -9,7 +9,7 @@ import {
   type RepositoryRef,
 } from '../src/index.js';
 
-const repository: RepositoryRef = { host: 'github', owner: 'acme', name: 'app' };
+const repository: RepositoryRef = { host: 'github.com', owner: 'acme', name: 'app' };
 const firstQuarter: DateRange = { since: '2026-01-01', until: '2026-03-31' };
 
 function pullRequest(number: number, mergedAt: string): PullRequestActivity {

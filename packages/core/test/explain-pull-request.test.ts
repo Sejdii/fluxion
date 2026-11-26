@@ -10,7 +10,7 @@ import {
   type RepositoryRef,
 } from '../src/index.js';
 
-const repository: RepositoryRef = { host: 'github', owner: 'acme', name: 'app' };
+const repository: RepositoryRef = { host: 'github.com', owner: 'acme', name: 'app' };
 const author: Actor = { login: 'ann', isBot: false };
 const bob: Actor = { login: 'bob', isBot: false };
 const buildBot: Actor = { login: 'ci', isBot: true };

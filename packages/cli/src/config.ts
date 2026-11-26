@@ -1,6 +1,6 @@
 import { isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { GithubCliExecutor, GitHubPullRequestSource, findRepositories, locateRepositories } from '@fluxion/adapters';
+import { GithubCliExecutor, GitHubPullRequestSource, findRepositories, locateRepositories, loggedInHosts } from '@fluxion/adapters';
 import {
   CachingPullRequestSource,
   InMemoryCache,
@@ -20,6 +20,7 @@ import {
 import { createDashboardApp, type DashboardUseCase } from './http/dashboard-app.js';
 import { openBrowser, startServer, type RunningServer } from './http/serve.js';
 import type { Runners } from './program.js';
+import { rememberedHosts } from './remembered-hosts.js';
 
 const WEB_ROOT = fileURLToPath(new URL('../../web/dist', import.meta.url));
 const FREE_PORT = 0;
@@ -53,7 +54,7 @@ export interface InMemoryDashboard {
 
 export function startInMemoryDashboard(finder: RepositoryFinder, now: () => Date): InMemoryDashboard {
   const source = new InMemoryPullRequestSource();
-  const options = async (): Promise<RepositoryOption[]> => (await finder.find()).map((repository) => ({ path: repository.name, name: displayName(repository) }));
+  const options = async (): Promise<RepositoryOption[]> => (await finder.find()).map((repository) => ({ path: repository.name, name: displayName(repository), host: repository.host }));
   const selecting = (selected: string[] | undefined): RepositoryFinder => ({
     find: async () => (await finder.find()).filter((repository) => !selected || selected.includes(repository.name)),
   });
@@ -71,14 +72,15 @@ function withinDirectory(directory: string, repos: string[] | undefined): string
 
 export function createRunners(directory: string, now: () => Date): Runners {
   const pullRequests = cachingSource(new GitHubPullRequestSource(new GithubCliExecutor()));
-  const finderFor = (repos: string[] | undefined): RepositoryFinder => ({ find: () => findRepositories(directory, repos) });
+  const hosts = rememberedHosts(loggedInHosts);
+  const finderFor = (repos: string[] | undefined): RepositoryFinder => ({ find: () => hosts.using((known) => findRepositories(directory, known, repos)) });
   const portsFor = (repos: string[] | undefined): MetricPorts => ({ pullRequests, repositories: finderFor(repos) });
   return {
     metric: ({ repos, ...request }) => queryMetric(portsFor(repos), request, now()),
     explain: ({ repos, ...request }) => explainPullRequest(portsFor(repos), request),
     serve: async ({ port, open, repos, workSchedule }) => {
       const options = async (): Promise<RepositoryOption[]> =>
-        (await locateRepositories(directory, repos)).map(({ path, repository }) => ({ path, name: displayName(repository) }));
+        (await hosts.using((known) => locateRepositories(directory, known, repos))).map(({ path, repository }) => ({ path, name: displayName(repository), host: repository.host }));
       const finder = (selected: string[] | undefined): RepositoryFinder => finderFor(withinDirectory(directory, selected));
       const app = createDashboardApp(dashboardUseCase(pullRequests, { finder, options }, now, { repos, workSchedule }), WEB_ROOT);
       const { url } = await startServer(app, port ?? FREE_PORT);

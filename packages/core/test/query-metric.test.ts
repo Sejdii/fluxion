@@ -12,7 +12,7 @@ import {
   type RepositoryRef,
 } from '../src/index.js';
 
-const repository: RepositoryRef = { host: 'github', owner: 'acme', name: 'app' };
+const repository: RepositoryRef = { host: 'github.com', owner: 'acme', name: 'app' };
 const now = new Date('2026-03-20T10:00:00Z');
 
 function mergedAt(timestamp: string, number = 1): PullRequestActivity {
@@ -120,7 +120,7 @@ test('pullRequestMergedAfterTheUntilDateIsExcluded', async () => {
 
 test('pullRequestsOfAnotherRepositoryAreNotCounted', async () => {
   const ports = portsWith(mergedAt('2026-01-05T10:00:00Z'));
-  const other: RepositoryRef = { host: 'github', owner: 'acme', name: 'other' };
+  const other: RepositoryRef = { host: 'github.com', owner: 'acme', name: 'other' };
 
   const result = await queryMetric({ ...ports, repositories: new InMemoryRepositoryFinder(other) }, request(), now);
 

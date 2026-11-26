@@ -8,6 +8,7 @@ import { checkPeriod, pooledPullRequests, type MetricPorts } from './query-metri
 import { DAY_PERIOD_MAX_MONTHS, exceedsDayPeriodLimit, previousRangeOf, resolveRange } from './range.js';
 import type { WorkSchedule } from './work-schedule.js';
 import { definitionsOf, type MetricDefinition } from './registry.js';
+import { findOnOneHost } from './hosts.js';
 
 export interface DashboardRequest {
   family: string;
@@ -81,7 +82,7 @@ export async function queryDashboard(ports: MetricPorts, request: DashboardReque
     throw new UsageError(`The day period needs a range of at most ${DAY_PERIOD_MAX_MONTHS} months`);
   }
   const previousRange = previousRangeOf(range);
-  const repositories = await ports.repositories.find();
+  const repositories = await findOnOneHost(ports.repositories);
   const comparedRange = request.compare === 'never' ? null : previousRange;
   const onMonthFetched = trackMonths(comparedRange ? [range, comparedRange] : [range], repositories, onProgress);
   const current = await pooledPullRequests(ports.pullRequests, repositories, range, onMonthFetched);
@@ -103,4 +104,5 @@ export async function queryDashboard(ports: MetricPorts, request: DashboardReque
 export interface RepositoryOption {
   path: string;
   name: string;
+  host: string;
 }

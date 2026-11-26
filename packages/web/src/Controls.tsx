@@ -1,6 +1,7 @@
 import type { RepositoryOption } from '@fluxion/core';
 import { useState } from 'react';
 import { Settings } from './Settings.js';
+import { groupByHost, toggledRepositories } from './repositories.js';
 import { DEFAULT_COMPARISON, applyChoice, isDayPeriodAllowed, isValidSchedule, scheduleKey, snapToYears, yearChoices, yearRange, yearsOf, type Period, type Query, type Range } from './query.js';
 
 const PERIOD_CHOICES: { value: Period; label: string }[] = [
@@ -19,20 +20,36 @@ interface ControlsProps {
   disabled: boolean;
 }
 
-function toggled(repos: string[], path: string): string[] {
-  return repos.includes(path) ? repos.filter((repo) => repo !== path) : [...repos, path];
+interface RepositoriesProps {
+  options: RepositoryOption[];
+  repos: string[];
+  onChange(repos: string[]): void;
 }
 
-function Repositories({ options, repos, onChange }: { options: RepositoryOption[]; repos: string[]; onChange(repos: string[]): void }) {
+function RepositoryChoices({ shown, options, repos, onChange }: RepositoriesProps & { shown: RepositoryOption[] }) {
+  return shown.map((option) => (
+    <label key={option.path} className="check">
+      <input type="checkbox" checked={repos.includes(option.path)} onChange={() => onChange(toggledRepositories(options, repos, option.path))} />
+      {option.name}
+    </label>
+  ));
+}
+
+function Repositories(props: RepositoriesProps) {
+  const groups = groupByHost(props.options);
   return (
     <fieldset className="field">
       <legend className="label">Repositories</legend>
-      {options.map((option) => (
-        <label key={option.path} className="check">
-          <input type="checkbox" checked={repos.includes(option.path)} onChange={() => onChange(toggled(repos, option.path))} />
-          {option.name}
-        </label>
-      ))}
+      {groups.length > 1 ? (
+        groups.map(({ host, options: onHost }) => (
+          <fieldset key={host} className="field">
+            <legend className="muted">{host}</legend>
+            <RepositoryChoices {...props} shown={onHost} />
+          </fieldset>
+        ))
+      ) : (
+        <RepositoryChoices {...props} shown={props.options} />
+      )}
     </fieldset>
   );
 }

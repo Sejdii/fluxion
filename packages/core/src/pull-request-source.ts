@@ -1,5 +1,5 @@
 export interface RepositoryRef {
-  host: 'github';
+  host: string;
   owner: string;
   name: string;
 }
