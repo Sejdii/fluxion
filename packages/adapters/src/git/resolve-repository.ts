@@ -11,6 +11,10 @@ const SCHEME_URL = /^(?:https?|ssh|git):\/\/(?:[^@/\s]+@)?([^/:\s]+)(?::\d+)?\/(
 const SCP_URL = /^(?:[^@/\s]+@)?([^/:\s]+):(?!\/\/)(\S+)$/;
 const REPOSITORY_PATH = /^\/?([^/]+)\/([^/]+?)(?:\.git)?\/?$/;
 const PREFERRED_REMOTE = 'origin';
+const HOSTNAME_ALIASES = new Map([
+  ['ssh.github.com', 'github.com'],
+  ['www.github.com', 'github.com'],
+]);
 
 interface RemoteAddress {
   host: string;
@@ -19,12 +23,18 @@ interface RemoteAddress {
 
 function addressOf(url: string): RemoteAddress | undefined {
   const match = SCHEME_URL.exec(url.trim()) ?? SCP_URL.exec(url.trim());
-  return match?.[1] && match[2] ? { host: match[1].toLowerCase(), path: match[2] } : undefined;
+  if (!match?.[1] || !match[2]) return undefined;
+  const hostname = match[1].toLowerCase();
+  return { host: HOSTNAME_ALIASES.get(hostname) ?? hostname, path: match[2] };
+}
+
+function knownHost(hostname: string | undefined, hosts: string[]): string | undefined {
+  return hosts.find((known) => known.toLowerCase() === hostname);
 }
 
 export function parseRemote(url: string, hosts: string[]): RepositoryRef | undefined {
   const address = addressOf(url);
-  const host = hosts.find((known) => known.toLowerCase() === address?.host);
+  const host = knownHost(address?.host, hosts);
   const [, owner, name] = REPOSITORY_PATH.exec(address?.path ?? '') ?? [];
   return host && owner && name ? { host, owner, name } : undefined;
 }
@@ -44,8 +54,7 @@ export function isInsideRepository(directory: string): Promise<boolean> {
 }
 
 function noGitHubRemote(directory: string, urls: string[], hosts: string[]): DataError {
-  const known = new Set(hosts.map((host) => host.toLowerCase()));
-  const host = urls.map((url) => addressOf(url)?.host).find((found) => found !== undefined && !known.has(found));
+  const host = urls.map((url) => addressOf(url)?.host).find((found) => found !== undefined && !knownHost(found, hosts));
   const hint = host ? `. gh is not logged in to ${host}; if it is a GitHub host, run \`gh auth login --hostname ${host}\`` : '';
   return new DataError(`${directory} has no GitHub remote${hint}`);
 }

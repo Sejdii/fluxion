@@ -106,5 +106,13 @@ test('malformedRemoteOnAKnownHostDoesNotSuggestLoggingIn', async () => {
   const result = resolveCurrentRepository(workDir, HOSTS);
 
   await expect(result).rejects.toThrow(new DataError(`${workDir} has no GitHub remote`));
-  await expect(result).rejects.not.toThrow('logged in');
 });
+
+test.each(['git@ssh.github.com:acme/app.git', 'ssh://git@ssh.github.com:443/acme/app.git', 'https://www.github.com/acme/app'])(
+  'treatsAnAlternativeGitHubHostnameAsGitHubDotCom %s',
+  (url) => {
+    const result = parseRemote(url, HOSTS);
+
+    expect(result).toEqual({ host: 'github.com', owner: 'acme', name: 'app' });
+  },
+);

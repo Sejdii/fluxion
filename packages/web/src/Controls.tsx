@@ -41,10 +41,10 @@ function Repositories(props: RepositoriesProps) {
     <fieldset className="field">
       <legend className="label">Repositories</legend>
       {groups.length > 1 ? (
-        groups.map(({ host, options }) => (
+        groups.map(({ host, options: onHost }) => (
           <fieldset key={host} className="field">
             <legend className="muted">{host}</legend>
-            <RepositoryChoices {...props} shown={options} />
+            <RepositoryChoices {...props} shown={onHost} />
           </fieldset>
         ))
       ) : (

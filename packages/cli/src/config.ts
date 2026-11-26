@@ -20,6 +20,7 @@ import {
 import { createDashboardApp, type DashboardUseCase } from './http/dashboard-app.js';
 import { openBrowser, startServer, type RunningServer } from './http/serve.js';
 import type { Runners } from './program.js';
+import { rememberedHosts } from './remembered-hosts.js';
 
 const WEB_ROOT = fileURLToPath(new URL('../../web/dist', import.meta.url));
 const FREE_PORT = 0;
@@ -69,40 +70,17 @@ function withinDirectory(directory: string, repos: string[] | undefined): string
   return repos;
 }
 
-interface KnownHosts {
-  get(): Promise<string[]>;
-  forget(): void;
-}
-
-function rememberedHosts(): KnownHosts {
-  let hosts: Promise<string[]> | undefined;
-  const forget = () => {
-    hosts = undefined;
-  };
-  return { get: () => (hosts ??= loggedInHosts()), forget };
-}
-
-function forgettingOnFailure<T>(hosts: KnownHosts, find: (known: string[]) => Promise<T>): Promise<T> {
-  return hosts
-    .get()
-    .then(find)
-    .catch((error: unknown) => {
-      hosts.forget();
-      throw error;
-    });
-}
-
 export function createRunners(directory: string, now: () => Date): Runners {
   const pullRequests = cachingSource(new GitHubPullRequestSource(new GithubCliExecutor()));
-  const hosts = rememberedHosts();
-  const finderFor = (repos: string[] | undefined): RepositoryFinder => ({ find: () => forgettingOnFailure(hosts, (known) => findRepositories(directory, known, repos)) });
+  const hosts = rememberedHosts(loggedInHosts);
+  const finderFor = (repos: string[] | undefined): RepositoryFinder => ({ find: () => hosts.using((known) => findRepositories(directory, known, repos)) });
   const portsFor = (repos: string[] | undefined): MetricPorts => ({ pullRequests, repositories: finderFor(repos) });
   return {
     metric: ({ repos, ...request }) => queryMetric(portsFor(repos), request, now()),
     explain: ({ repos, ...request }) => explainPullRequest(portsFor(repos), request),
     serve: async ({ port, open, repos, workSchedule }) => {
       const options = async (): Promise<RepositoryOption[]> =>
-        (await forgettingOnFailure(hosts, (known) => locateRepositories(directory, known, repos))).map(({ path, repository }) => ({ path, name: displayName(repository), host: repository.host }));
+        (await hosts.using((known) => locateRepositories(directory, known, repos))).map(({ path, repository }) => ({ path, name: displayName(repository), host: repository.host }));
       const finder = (selected: string[] | undefined): RepositoryFinder => finderFor(withinDirectory(directory, selected));
       const app = createDashboardApp(dashboardUseCase(pullRequests, { finder, options }, now, { repos, workSchedule }), WEB_ROOT);
       const { url } = await startServer(app, port ?? FREE_PORT);

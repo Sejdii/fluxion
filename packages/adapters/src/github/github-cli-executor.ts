@@ -44,9 +44,19 @@ function toArguments(host: string, document: string, variables: GraphqlVariables
   return ['api', 'graphql', '--hostname', host, '-f', `query=${document}`, ...fields];
 }
 
+type HostAccounts = Record<string, { state: string; login: string }[]>;
+
+export function hostsWithALogin(accountsByHost: HostAccounts): string[] {
+  const hosts = Object.entries(accountsByHost)
+    .filter(([, accounts]) => accounts.some((account) => account.state === 'success' || account.login !== ''))
+    .map(([host]) => host);
+  if (hosts.length === 0) throw new DataError(`gh is not logged in. Run \`${loginCommand(undefined)}\``);
+  return hosts;
+}
+
 export async function loggedInHosts(): Promise<string[]> {
-  const status = parseResponse<{ hosts: Record<string, unknown> }>(await runGh(['auth', 'status', '--json', 'hosts']));
-  return Object.keys(status.hosts);
+  const status = parseResponse<{ hosts: HostAccounts }>(await runGh(['auth', 'status', '--json', 'hosts']));
+  return hostsWithALogin(status.hosts);
 }
 
 export class GithubCliExecutor implements GithubApi {
