@@ -206,12 +206,20 @@ test('apiPrPassesTheComparisonModeToTheUseCase', async () => {
   expect(api.queries).toEqual([{ period: 'monthly', compare: 'never' }]);
 });
 
+test('apiPrPassesTheAutomaticComparisonModeToTheUseCase', async () => {
+  const api = harness();
+
+  await api.request('/api/pr?period=monthly&compare=auto');
+
+  expect(api.queries).toEqual([{ period: 'monthly', compare: 'auto' }]);
+});
+
 test('apiPrUnknownComparisonModeIsABadRequestWithoutQuerying', async () => {
   const api = harness();
 
   const response = await api.request('/api/pr?period=monthly&compare=sometimes');
 
-  expect([response.status, await response.json(), api.queries]).toEqual([400, { error: 'Unknown comparison mode "sometimes". Use always, never' }, []]);
+  expect([response.status, await response.json(), api.queries]).toEqual([400, { error: 'Unknown comparison mode "sometimes". Use auto, always, never' }, []]);
 });
 
 test('apiPrEmptyComparisonModeIsABadRequest', async () => {

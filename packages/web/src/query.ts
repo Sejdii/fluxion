@@ -16,9 +16,9 @@ export interface Query extends Range {
   compare?: ComparisonMode | undefined;
 }
 
-export const COMPARISON_LABELS: Record<ComparisonMode, string> = { always: 'Always', never: 'Never' };
+export const COMPARISON_LABELS: Record<ComparisonMode, string> = { auto: 'Auto', always: 'Always', never: 'Never' };
 export const COMPARISON_MODES = Object.keys(COMPARISON_LABELS) as ComparisonMode[];
-export const DEFAULT_COMPARISON: ComparisonMode = 'always';
+export const DEFAULT_COMPARISON: ComparisonMode = 'auto';
 
 export const WEEKDAYS: Weekday[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 

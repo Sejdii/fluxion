@@ -13,13 +13,19 @@ export class InMemoryPullRequestSource implements PullRequestSource {
   private readonly byRepository = new Map<string, FetchedPullRequest[]>();
   private failure: Error | null = null;
   private searchLimit = Infinity;
+  private countFailure: Error | null = null;
   private readonly monthFailures = new Map<string, Error>();
   private readonly holds = new Map<string, Promise<void>>();
   fetches = 0;
   readonly requested: DateRange[] = [];
+  readonly counted: DateRange[] = [];
 
   failWith(error: Error | null): void {
     this.failure = error;
+  }
+
+  failCountsWith(error: Error | null): void {
+    this.countFailure = error;
   }
 
   failMonth(month: string, error: Error | null): void {
@@ -67,7 +73,9 @@ export class InMemoryPullRequestSource implements PullRequestSource {
   }
 
   countMergedPullRequests(repository: RepositoryRef, range: DateRange): Promise<number> {
-    if (this.failure) return Promise.reject(this.failure);
+    this.counted.push(range);
+    const failure = this.countFailure ?? this.failure;
+    if (failure) return Promise.reject(failure);
     return Promise.resolve(this.mergedIn(repository, range).length);
   }
 
