@@ -1,4 +1,4 @@
-import type { DashboardMetric } from '@fluxion/core';
+import type { ComparisonSkip, DashboardMetric } from '@fluxion/core';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { expect, test } from 'vitest';
 import { loadComparisonMode, saveComparisonMode } from '../src/comparison-storage.js';
@@ -27,6 +27,31 @@ test('everyTileOfASkippedComparisonShowsADashThatSaysItIsTurnedOff', () => {
   expect(markup.match(new RegExp(`class="change change-none" aria-label="${sentence}"`, 'g'))).toHaveLength(3);
   expect(markup.match(/>—<\/span>/g)).toHaveLength(3);
   expect(markup).toContain(`>${sentence}</span>`);
+});
+
+function tilesSkippedFor(previous: ComparisonSkip): string {
+  const metric = { ...skippedMetric, tiles: { ...skippedMetric.tiles, previous } };
+  return renderToStaticMarkup(<Tiles metric={metric} previousRange={{ since: '2025-12-01', until: '2025-12-31' }} lowSampleThreshold={5} />);
+}
+
+test('aLargeLoadSkipNamesTheNumberAndSaysAlwaysComparesAnyway', () => {
+  const markup = tilesSkippedFor({ skipped: 'largeLoad', threshold: 1500 });
+
+  expect(markup).toContain('aria-label="No comparison: the selected range has more than 1,500 merged PRs; set Compare with previous range to Always to compare anyway."');
+});
+
+test('anUnavailableCountSkipSuggestsRefreshOrAlways', () => {
+  const markup = tilesSkippedFor({ skipped: 'countUnavailable' });
+
+  expect(markup).toContain('aria-label="No comparison: the merged PR count could not be checked; press Refresh to try again, or set Compare with previous range to Always."');
+});
+
+test('settingsSelectAutoWhenNoComparisonModeIsChosen', () => {
+  const markup = renderToStaticMarkup(
+    <Controls options={[{ path: 'app', name: 'app', host: 'github.com' }]} applied={{ repos: ['app'], since: '2026-01-01', until: '2026-02-01', period: 'monthly' }} dayPeriodMaxMonths={12} today={new Date('2026-03-20T10:00:00Z')} onApply={() => undefined} disabled={false} />,
+  );
+
+  expect(markup).toMatch(/<input type="radio"[^>]*checked=""[^>]*\/>Auto/);
 });
 
 test('theRailShowsNoChangeForASkippedComparison', () => {

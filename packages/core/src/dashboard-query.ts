@@ -1,4 +1,5 @@
-import type { ComparisonMode, ComparisonSkip } from './comparison.js';
+import { comparisonSkipOf, type ComparisonMode, type ComparisonSkip } from './comparison.js';
+import { countMergedAcross } from './count-query.js';
 import { trackMonths, type ProgressListener } from './dashboard-progress.js';
 import { isLowSample, LOW_SAMPLE_THRESHOLD } from './low-sample.js';
 import { UsageError } from './errors.js';
@@ -59,7 +60,7 @@ interface Pools {
   period: string;
   range: DateRange;
   current: PullRequestActivity[];
-  previous: PullRequestActivity[] | null;
+  previous: PullRequestActivity[] | ComparisonSkip;
   workSchedule: WorkSchedule | undefined;
 }
 
@@ -68,7 +69,7 @@ function metricOf(definition: MetricDefinition, pools: Pools, now: Date): Dashbo
     const row: DashboardRow = { period: bucket.label, ...summaryOf(definition, bucket.pullRequests, pools.workSchedule) };
     return bucket.inProgress ? { ...row, inProgress: true as const } : row;
   });
-  const previous = pools.previous ? summaryOf(definition, pools.previous, pools.workSchedule) : { skipped: 'turnedOff' as const };
+  const previous = Array.isArray(pools.previous) ? summaryOf(definition, pools.previous, pools.workSchedule) : pools.previous;
   const tiles = { current: summaryOf(definition, pools.current, pools.workSchedule), previous };
   return definition.unit ? { id: definition.id, unit: definition.unit, rows, tiles } : { id: definition.id, rows, tiles };
 }
@@ -83,10 +84,10 @@ export async function queryDashboard(ports: MetricPorts, request: DashboardReque
   }
   const previousRange = previousRangeOf(range);
   const repositories = await findOnOneHost(ports.repositories);
-  const comparedRange = request.compare === 'never' ? null : previousRange;
-  const onMonthFetched = trackMonths(comparedRange ? [range, comparedRange] : [range], repositories, onProgress);
+  const skip = await comparisonSkipOf(request.compare ?? 'auto', () => countMergedAcross(ports.pullRequests, repositories, range));
+  const onMonthFetched = trackMonths(skip ? [range] : [range, previousRange], repositories, onProgress);
   const current = await pooledPullRequests(ports.pullRequests, repositories, range, onMonthFetched);
-  const previous = comparedRange ? await pooledPullRequests(ports.pullRequests, repositories, comparedRange, onMonthFetched) : null;
+  const previous = skip ?? (await pooledPullRequests(ports.pullRequests, repositories, previousRange, onMonthFetched));
   const metrics = definitions.map((definition) => metricOf(definition, { period: request.period, range, current, previous, workSchedule: request.workSchedule }, now));
   return {
     range,

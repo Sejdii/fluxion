@@ -87,9 +87,13 @@ The value that 90% of merged PRs stay at or below. It shows the slow tail that t
 _Avoid_: Worst case, maximum
 
 **Previous range**:
-The range of the same length that ends the day before the selected range starts. It is the baseline that the change is measured against.
+The range of the same length that ends the day before the selected range starts. It is the baseline that the change is measured against. It is not always fetched: the comparison can be turned off, and by default it is skipped for a large load or when the count of merged PRs cannot be checked.
 _Avoid_: Previous period (a period is a day, week, month or year bucket), prior window
 
+**Large load**:
+A selected range that holds more than 500 merged PRs, summed over the selected repositories.
+_Avoid_: Big repository (the size is that of the range, not of a repository)
+
 **Change**:
-The percent difference of a statistic between the selected range and the previous range. It is not shown when either range is a low sample or the previous value is zero.
+The percent difference of a statistic between the selected range and the previous range. It is not shown when the previous range is skipped, either range is a low sample or the previous value is zero.
 _Avoid_: Trend, delta, growth

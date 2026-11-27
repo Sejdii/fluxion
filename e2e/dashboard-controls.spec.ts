@@ -198,7 +198,7 @@ test('openingTheDashboardRemembersNoComparisonChoice', async ({ page, data }) =>
 
   await openDashboard(page);
 
-  await expect(page.getByRole('radio', { name: 'Always' })).toBeChecked();
+  await expect(page.getByRole('radio', { name: 'Auto' })).toBeChecked();
   expect(await page.evaluate(() => Object.keys(localStorage))).toEqual([]);
 });
 

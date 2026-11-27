@@ -18,9 +18,18 @@ export type Change =
   | { available: true; percent: number; arrow: '▲' | '▼' | '●'; tone: Tone; text: string; sentence: string; short: string }
   | { available: false; reason: string; sentence: string };
 
-const SKIP_REASONS: Record<ComparisonSkip['skipped'], string> = { turnedOff: 'the comparison is turned off in Settings' };
-
 const STATISTIC_LABELS: Record<Statistic, string> = { median: 'Median', p90: 'p90', total: 'Total', n: 'Merged PRs' };
+
+function skipReasonOf(skip: ComparisonSkip): string {
+  switch (skip.skipped) {
+    case 'turnedOff':
+      return 'the comparison is turned off in Settings';
+    case 'largeLoad':
+      return `the selected range has more than ${skip.threshold.toLocaleString('en-US')} merged PRs; set Compare with previous range to Always to compare anyway`;
+    case 'countUnavailable':
+      return 'the merged PR count could not be checked; press Refresh to try again, or set Compare with previous range to Always';
+  }
+}
 
 function valueOf(summary: DashboardSummary, statistic: Statistic): number | null {
   return statistic === 'n' ? summary.n : (summary.values[statistic] ?? null);
@@ -58,7 +67,7 @@ function unavailable(reason: string): Change {
 export function changeOf(statistic: Statistic, context: ChangeContext): Change {
   const { metric, previousRange, lowSampleThreshold } = context;
   const { current, previous } = metric.tiles;
-  if ('skipped' in previous) return unavailable(SKIP_REASONS[previous.skipped]);
+  if ('skipped' in previous) return unavailable(skipReasonOf(previous));
   const reason = unavailableReason(statistic, current, previous, lowSampleThreshold);
   if (reason !== null) return unavailable(reason);
   const now = valueOf(current, statistic) as number;
