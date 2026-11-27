@@ -130,7 +130,7 @@ test('anInvalidThresholdCannotBeApplied', async ({ page, data }) => {
   await expect(page.getByRole('button', { name: 'Apply' })).toBeDisabled();
 });
 
-test('applyingAThresholdKeepsTheRangeOnScreenAndRemembersIt', async ({ page, data }) => {
+test('applyingAThresholdKeepsTheRangeOnScreen', async ({ page, data }) => {
   await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
   await openDashboard(page);
   const since = await page.getByLabel('From').inputValue();
@@ -141,7 +141,17 @@ test('applyingAThresholdKeepsTheRangeOnScreenAndRemembersIt', async ({ page, dat
   await expect(metricRow(page, 'PR size')).toContainText('30');
   await expect(page.getByLabel('From')).toHaveValue(since);
   await expect(page.getByRole('note')).toHaveCount(0);
+});
+
+test('anAppliedThresholdSurvivesAReload', async ({ page, data }) => {
+  await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
+  await openDashboard(page);
+  await page.getByRole('spinbutton', { name: /Large load threshold/ }).fill('4');
+  await page.getByRole('button', { name: 'Apply' }).click();
+  await expect(metricRow(page, 'PR size')).toContainText('30');
+
   await page.reload();
+
   await expect(page.getByRole('note')).toContainText('last 3 months');
 });
 

@@ -74,8 +74,11 @@ function LargeLoadThreshold({ threshold, onChange }: { threshold: number; onChan
   return (
     <label className="field">
       <span className="label">Large load threshold</span>
-      <span className="muted">more than N merged PRs</span>
-      <input type="number" min={1} step={1} value={Number.isNaN(threshold) ? '' : threshold} onChange={(event) => onChange(event.target.valueAsNumber)} />
+      <span className="threshold">
+        more than
+        <input type="number" min={1} step={1} value={Number.isNaN(threshold) ? '' : threshold} onChange={(event) => onChange(event.target.valueAsNumber)} />
+        merged PRs
+      </span>
     </label>
   );
 }

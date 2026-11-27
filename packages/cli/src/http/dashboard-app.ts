@@ -46,7 +46,7 @@ function workScheduleOf(params: URLSearchParams): WorkSchedule | null | undefine
   return parseWorkSchedule({ days, hours, timeZone });
 }
 
-function comparisonOf(params: URLSearchParams): Pick<DashboardQuery, 'compare' | 'largeLoadThreshold'> {
+function comparisonOptionsOf(params: URLSearchParams): Pick<DashboardQuery, 'compare' | 'largeLoadThreshold'> {
   const compare = params.get('compare');
   const threshold = params.get('largeLoadThreshold');
   return {
@@ -58,7 +58,7 @@ function comparisonOf(params: URLSearchParams): Pick<DashboardQuery, 'compare' |
 function queryOf(params: URLSearchParams): DashboardQuery {
   const period = params.get('period');
   if (!period) throw new UsageError('Missing query parameter "period"');
-  const query: DashboardQuery = { period, ...comparisonOf(params) };
+  const query: DashboardQuery = { period, ...comparisonOptionsOf(params) };
   const since = params.get('since');
   const until = params.get('until');
   const repos = splitRepos(params.get('repos') ?? undefined);
