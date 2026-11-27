@@ -4,6 +4,7 @@ import {
   InMemoryPullRequestSource,
   InMemoryRepositoryFinder,
   parseComparisonMode,
+  parseLargeLoadThreshold,
   queryDashboard,
   UsageError,
   type ComparisonMode,
@@ -22,18 +23,18 @@ function mergedPullRequests(count: number): FetchedPullRequest[] {
   return Array.from({ length: count }, (_, number) => ({ number, author: null, createdAt: '2026-03-01T00:00:00Z', mergedAt: '2026-03-02T00:00:00Z', additions: 1, deletions: 0, draftEvents: [], comments: [], reviewComments: [], reviews: [] }));
 }
 
-function dashboardOver(source: InMemoryPullRequestSource, repositories: RepositoryRef[], compare: ComparisonMode | undefined) {
+function dashboardOver(source: InMemoryPullRequestSource, repositories: RepositoryRef[], compare: ComparisonMode | undefined, largeLoadThreshold?: number) {
   const reported: DashboardProgress[] = [];
   const ports = { pullRequests: source, repositories: new InMemoryRepositoryFinder(...repositories) };
-  const request = { family: 'pr', period: 'monthly', ...selected, ...(compare ? { compare } : {}) };
+  const request = { family: 'pr', period: 'monthly', ...selected, ...(compare ? { compare } : {}), ...(largeLoadThreshold ? { largeLoadThreshold } : {}) };
   const query = () => queryDashboard(ports, request, now, (progress) => reported.push(progress));
   return { source, reported, query };
 }
 
-function setUp(compare?: ComparisonMode, count = 0) {
+function setUp(compare?: ComparisonMode, count = 0, largeLoadThreshold?: number) {
   const source = new InMemoryPullRequestSource();
   source.set(repository, mergedPullRequests(count));
-  return dashboardOver(source, [repository], compare);
+  return dashboardOver(source, [repository], compare, largeLoadThreshold);
 }
 
 async function previousTileOf(dashboard: ReturnType<ReturnType<typeof setUp>['query']>) {
@@ -168,4 +169,24 @@ test('withoutAModeTheComparisonIsAutomatic', async () => {
 
 test('anUnknownModeIsAUsageError', () => {
   expect(() => parseComparisonMode('sometimes')).toThrow(new UsageError('Unknown comparison mode "sometimes". Use auto, always, never'));
+});
+
+test('autoSkipsARangeAboveTheGivenThresholdAndNamesIt', async () => {
+  expect(await previousTileOf(setUp('auto', 11, 10).query())).toEqual({ skipped: 'largeLoad', threshold: 10 });
+});
+
+test('autoComparesARangeAboveTheDefaultButWithinTheGivenThreshold', async () => {
+  const { source, query } = setUp('auto', 501, 600);
+
+  await query();
+
+  expect(source.requested).toEqual([selected, previous]);
+});
+
+test('aWholeNumberOfAtLeastOneIsALargeLoadThreshold', () => {
+  expect(parseLargeLoadThreshold('1')).toBe(1);
+});
+
+test.each([[''], ['0'], ['-1'], ['1.5'], ['1e3'], ['many'], ['99999999999999999999']])('anInvalidLargeLoadThresholdIsAUsageError%#', (text) => {
+  expect(() => parseLargeLoadThreshold(text)).toThrow(new UsageError(`Invalid large load threshold "${text}". Use a whole number of at least 1`));
 });

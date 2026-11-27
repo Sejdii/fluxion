@@ -1,6 +1,6 @@
 import { isAbsolute } from 'node:path';
 import { serveStatic } from '@hono/node-server/serve-static';
-import { DataError, UsageError, parseComparisonMode, parseWorkSchedule, type ComparisonMode, type Dashboard, type ProgressListener, type PullRequestCount, type RepositoryOption, type WorkSchedule } from '@fluxion/core';
+import { DataError, UsageError, parseComparisonMode, parseLargeLoadThreshold, parseWorkSchedule, type ComparisonMode, type Dashboard, type ProgressListener, type PullRequestCount, type RepositoryOption, type WorkSchedule } from '@fluxion/core';
 import { Hono, type Context } from 'hono';
 import { DashboardJobs, settledWithin, type Job } from './dashboard-jobs.js';
 
@@ -11,6 +11,7 @@ export interface DashboardQuery {
   repos?: string[];
   workSchedule?: WorkSchedule | null;
   compare?: ComparisonMode;
+  largeLoadThreshold?: number;
 }
 
 export interface CountQuery {
@@ -45,17 +46,24 @@ function workScheduleOf(params: URLSearchParams): WorkSchedule | null | undefine
   return parseWorkSchedule({ days, hours, timeZone });
 }
 
+function comparisonOf(params: URLSearchParams): Pick<DashboardQuery, 'compare' | 'largeLoadThreshold'> {
+  const compare = params.get('compare');
+  const threshold = params.get('largeLoadThreshold');
+  return {
+    ...(compare === null ? {} : { compare: parseComparisonMode(compare) }),
+    ...(threshold === null ? {} : { largeLoadThreshold: parseLargeLoadThreshold(threshold) }),
+  };
+}
+
 function queryOf(params: URLSearchParams): DashboardQuery {
   const period = params.get('period');
   if (!period) throw new UsageError('Missing query parameter "period"');
-  const query: DashboardQuery = { period };
+  const query: DashboardQuery = { period, ...comparisonOf(params) };
   const since = params.get('since');
   const until = params.get('until');
   const repos = splitRepos(params.get('repos') ?? undefined);
   const workSchedule = workScheduleOf(params);
   if (workSchedule !== undefined) query.workSchedule = workSchedule;
-  const compare = params.get('compare');
-  if (compare !== null) query.compare = parseComparisonMode(compare);
   if (since) query.since = since;
   if (until) query.until = until;
   if (repos) query.repos = repos;

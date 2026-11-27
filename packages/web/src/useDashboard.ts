@@ -4,6 +4,7 @@ import { loadComparisonMode, saveComparisonMode } from './comparison-storage.js'
 import { fetchDashboard, fetchPullRequestCount, fetchRepositories, type LoadOptions } from './api.js';
 import { defaultQuery, queryKey, startingQuery, type Query } from './query.js';
 import { preselectedRepositories } from './repositories.js';
+import { loadThreshold, saveThreshold } from './threshold-storage.js';
 import { loadSchedule, saveSchedule } from './schedule-storage.js';
 
 function browserStorage(): Storage | undefined {
@@ -77,6 +78,7 @@ function useTickets(setState: SetState): { next(): Ticket; drop(): void } {
 function loadInto(ticket: Ticket, cache: Map<string, Dashboard>, query: Query, refresh: boolean): void {
   const settled = (dashboard: Dashboard) => {
     if (query.compare !== undefined) saveComparisonMode(browserStorage(), query.compare);
+    if (query.largeLoadThreshold !== undefined) saveThreshold(browserStorage(), query.largeLoadThreshold);
     if (query.workSchedule !== undefined) saveSchedule(browserStorage(), query.workSchedule);
     const resolved = query.workSchedule === undefined ? { ...query, workSchedule: dashboard.workSchedule ?? null } : query;
     ticket.apply({ loading: false, dashboard, query: resolved });
@@ -114,8 +116,9 @@ function useStart(setState: SetState, load: Load): () => void {
         const today = new Date();
         const repos = preselectedRepositories(options);
         const count = await fetchPullRequestCount(defaultQuery(repos, today)).catch(() => null);
-        const starting = startingQuery(repos, today, count);
-        const query = { ...starting.query, compare: loadComparisonMode(browserStorage()), ...(schedule === undefined ? {} : { workSchedule: schedule }) };
+        const largeLoadThreshold = loadThreshold(browserStorage());
+        const starting = startingQuery(repos, today, count, largeLoadThreshold);
+        const query = { ...starting.query, compare: loadComparisonMode(browserStorage()), largeLoadThreshold, ...(schedule === undefined ? {} : { workSchedule: schedule }) };
         setState((previous) => ({ ...previous, options, notice: starting.notice }));
         load(query, false);
       },

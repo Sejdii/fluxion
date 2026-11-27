@@ -229,3 +229,19 @@ test('apiPrEmptyComparisonModeIsABadRequest', async () => {
 
   expect(response.status).toBe(400);
 });
+
+test('apiPrPassesTheLargeLoadThresholdToTheUseCase', async () => {
+  const api = harness();
+
+  await api.request('/api/pr?period=monthly&largeLoadThreshold=1500');
+
+  expect(api.queries).toEqual([{ period: 'monthly', largeLoadThreshold: 1500 }]);
+});
+
+test('apiPrInvalidLargeLoadThresholdIsABadRequestWithoutQuerying', async () => {
+  const api = harness();
+
+  const response = await api.request('/api/pr?period=monthly&largeLoadThreshold=0');
+
+  expect([response.status, await response.json(), api.queries]).toEqual([400, { error: 'Invalid large load threshold "0". Use a whole number of at least 1' }, []]);
+});

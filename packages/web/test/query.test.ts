@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { applyChoice, countQueryString, defaultQuery, SLOW_LOAD_PULL_REQUEST_COUNT, startingQuery, isDayPeriodAllowed, queryKey, queryString, snapToYears, yearChoices, yearRange, yearsOf, type Query } from '../src/query.js';
+import { applyChoice, countQueryString, defaultQuery, DEFAULT_LARGE_LOAD_THRESHOLD, startingQuery, isDayPeriodAllowed, queryKey, queryString, snapToYears, yearChoices, yearRange, yearsOf, type Query } from '../src/query.js';
 
 const today = new Date('2026-11-22T15:00:00Z');
 const MAX_MONTHS = 12;
@@ -19,7 +19,7 @@ test('defaultRangeIsTheSameWhateverThePeriodLaterBecomes', () => {
 });
 
 test('queryKeyIncludesRepositoriesRangeAndPeriod', () => {
-  expect(queryKey(query())).toBe('app|2026-01-01|2026-03-20|monthly|server|auto');
+  expect(queryKey(query())).toBe('app|2026-01-01|2026-03-20|monthly|server|auto|500');
 });
 
 test('queryKeyDiffersWhenOnlyThePeriodDiffers', () => {
@@ -88,21 +88,37 @@ test('yearsOfReadsTheYearsOfAnyRange', () => {
   expect(yearsOf({ since: '2025-12-01', until: '2026-11-22' })).toEqual({ from: 2025, to: 2026 });
 });
 
-test('aRepositoryAtOrBelowTheSlowLoadCountStartsWithTheDefaultRangeAndNoNotice', () => {
-  expect(startingQuery(['app'], today, SLOW_LOAD_PULL_REQUEST_COUNT)).toEqual({ query: defaultQuery(['app'], today), notice: null });
+test('aRepositoryAtOrBelowTheLargeLoadThresholdStartsWithTheDefaultRangeAndNoNotice', () => {
+  expect(startingQuery(['app'], today, DEFAULT_LARGE_LOAD_THRESHOLD)).toEqual({ query: defaultQuery(['app'], today), notice: null });
 });
 
 test('anUnknownCountStartsWithTheDefaultRangeAndNoNotice', () => {
   expect(startingQuery(['app'], today, null)).toEqual({ query: defaultQuery(['app'], today), notice: null });
 });
 
-test('aRepositoryAboveTheSlowLoadCountStartsWithTheLastThreeMonthsAndANoticeWithTheCount', () => {
-  const starting = startingQuery(['app'], today, SLOW_LOAD_PULL_REQUEST_COUNT + 1);
+test('aRepositoryAboveTheLargeLoadThresholdStartsWithTheLastThreeMonthsAndANoticeWithTheCount', () => {
+  const starting = startingQuery(['app'], today, DEFAULT_LARGE_LOAD_THRESHOLD + 1);
 
   expect(starting.query).toEqual({ repos: ['app'], since: '2026-09-01', until: '2026-11-22', period: 'monthly' });
-  expect(starting.notice).toContain(`${(SLOW_LOAD_PULL_REQUEST_COUNT + 1).toLocaleString('en-US')} merged PRs`);
+  expect(starting.notice).toContain(`${(DEFAULT_LARGE_LOAD_THRESHOLD + 1).toLocaleString('en-US')} merged PRs`);
 });
 
 test('countQueryStringSendsOnlyRepositoriesAndRange', () => {
   expect(countQueryString(query({ repos: ['a', 'b'] }))).toBe('repos=a%2Cb&since=2026-01-01&until=2026-03-20');
+});
+
+test('aCountAboveACustomThresholdStartsWithTheShorterRange', () => {
+  expect(startingQuery(['app'], today, 11, 10).query).toEqual(defaultQuery(['app'], today, 3));
+});
+
+test('aCountWithinACustomThresholdStartsWithTheDefaultRange', () => {
+  expect(startingQuery(['app'], today, 600, 600)).toEqual({ query: defaultQuery(['app'], today), notice: null });
+});
+
+test('queryStringSendsTheLargeLoadThreshold', () => {
+  expect(new URLSearchParams(queryString(query({ largeLoadThreshold: 1500 }), false)).get('largeLoadThreshold')).toBe('1500');
+});
+
+test('queryKeyDiffersByLargeLoadThreshold', () => {
+  expect(queryKey(query({ largeLoadThreshold: 1500 }))).not.toBe(queryKey(query()));
 });

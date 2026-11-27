@@ -18,6 +18,7 @@ export interface DashboardRequest {
   until?: string | undefined;
   workSchedule?: WorkSchedule | undefined;
   compare?: ComparisonMode | undefined;
+  largeLoadThreshold?: number | undefined;
 }
 
 export interface DashboardSummary {
@@ -84,7 +85,7 @@ export async function queryDashboard(ports: MetricPorts, request: DashboardReque
   }
   const previousRange = previousRangeOf(range);
   const repositories = await findOnOneHost(ports.repositories);
-  const skip = await comparisonSkipOf(request.compare ?? 'auto', () => countMergedAcross(ports.pullRequests, repositories, range));
+  const skip = await comparisonSkipOf(request.compare ?? 'auto', () => countMergedAcross(ports.pullRequests, repositories, range), request.largeLoadThreshold);
   const onMonthFetched = trackMonths(skip ? [range] : [range, previousRange], repositories, onProgress);
   const current = await pooledPullRequests(ports.pullRequests, repositories, range, onMonthFetched);
   const previous = skip ?? (await pooledPullRequests(ports.pullRequests, repositories, previousRange, onMonthFetched));

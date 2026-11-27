@@ -135,3 +135,9 @@ test('startingAJobWithAnUnknownComparisonModeIsABadRequest', async () => {
 
   expect(await api.start('period=monthly&compare=sometimes')).toEqual({ status: 400, body: { error: 'Unknown comparison mode "sometimes". Use auto, always, never' } });
 });
+
+test('anInvalidLargeLoadThresholdIsABadRequestForAJob', async () => {
+  const api = harness();
+
+  expect(await api.start('period=monthly&largeLoadThreshold=1.5')).toEqual({ status: 400, body: { error: 'Invalid large load threshold "1.5". Use a whole number of at least 1' } });
+});
