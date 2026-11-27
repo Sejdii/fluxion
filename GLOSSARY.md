@@ -91,7 +91,7 @@ The range of the same length that ends the day before the selected range starts.
 _Avoid_: Previous period (a period is a day, week, month or year bucket), prior window
 
 **Large load**:
-A selected range that holds more than 500 merged PRs, summed over the selected repositories.
+A selected range that holds more merged PRs than the large load threshold (500 unless the user sets another), summed over the selected repositories.
 _Avoid_: Big repository (the size is that of the range, not of a repository)
 
 **Change**:

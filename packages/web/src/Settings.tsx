@@ -8,6 +8,8 @@ interface SettingsProps {
   onScheduleChange(schedule: WorkSchedule | null): void;
   compare: ComparisonMode;
   onCompareChange(compare: ComparisonMode): void;
+  largeLoadThreshold: number;
+  onLargeLoadThresholdChange(threshold: number): void;
 }
 
 export function describeSchedule(schedule: WorkSchedule): string {
@@ -68,11 +70,25 @@ function Comparison({ compare, onChange }: { compare: ComparisonMode; onChange(c
   );
 }
 
-export function Settings({ schedule, onScheduleChange, compare, onCompareChange }: SettingsProps) {
+function LargeLoadThreshold({ threshold, onChange }: { threshold: number; onChange(threshold: number): void }) {
+  return (
+    <label className="field">
+      <span className="label">Large load threshold</span>
+      <span className="threshold">
+        more than
+        <input type="number" min={1} step={1} value={Number.isNaN(threshold) ? '' : threshold} onChange={(event) => onChange(event.target.valueAsNumber)} />
+        merged PRs
+      </span>
+    </label>
+  );
+}
+
+export function Settings({ schedule, onScheduleChange, compare, onCompareChange, largeLoadThreshold, onLargeLoadThresholdChange }: SettingsProps) {
   return (
     <fieldset className="field settings" aria-label="Settings">
       <legend className="label">Settings</legend>
       <Comparison compare={compare} onChange={onCompareChange} />
+      <LargeLoadThreshold threshold={largeLoadThreshold} onChange={onLargeLoadThresholdChange} />
       <label className="check">
         <input type="checkbox" checked={schedule !== null} onChange={(event) => onScheduleChange(event.target.checked ? defaultSchedule() : null)} />
         Measure in working time

@@ -14,11 +14,18 @@ export interface Query extends Range {
   period: Period;
   workSchedule?: ScheduleChoice;
   compare?: ComparisonMode | undefined;
+  largeLoadThreshold?: number | undefined;
 }
 
 export const COMPARISON_LABELS: Record<ComparisonMode, string> = { auto: 'Auto', always: 'Always', never: 'Never' };
 export const COMPARISON_MODES = Object.keys(COMPARISON_LABELS) as ComparisonMode[];
 export const DEFAULT_COMPARISON: ComparisonMode = 'auto';
+
+export const DEFAULT_LARGE_LOAD_THRESHOLD = 500;
+
+export function isValidThreshold(threshold: number): boolean {
+  return Number.isSafeInteger(threshold) && threshold >= 1;
+}
 
 export const WEEKDAYS: Weekday[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
@@ -41,7 +48,6 @@ function isoDate(date: Date): string {
   return date.toISOString().slice(0, DATE_LENGTH);
 }
 
-export const SLOW_LOAD_PULL_REQUEST_COUNT = 500;
 export const SHORT_DEFAULT_MONTHS = 3;
 
 export function defaultQuery(repos: string[], today: Date, months = DEFAULT_MONTHS): Query {
@@ -54,8 +60,8 @@ export interface Starting {
   notice: string | null;
 }
 
-export function startingQuery(repos: string[], today: Date, count: number | null): Starting {
-  if (count === null || count <= SLOW_LOAD_PULL_REQUEST_COUNT) return { query: defaultQuery(repos, today), notice: null };
+export function startingQuery(repos: string[], today: Date, count: number | null, largeLoadThreshold = DEFAULT_LARGE_LOAD_THRESHOLD): Starting {
+  if (count === null || count <= largeLoadThreshold) return { query: defaultQuery(repos, today), notice: null };
   const notice = `The last ${DEFAULT_MONTHS} months hold ${count.toLocaleString('en-US')} merged PRs, which would be slow to load. Showing the last ${SHORT_DEFAULT_MONTHS} months instead. Pick a longer range to load more.`;
   return { query: defaultQuery(repos, today, SHORT_DEFAULT_MONTHS), notice };
 }
@@ -65,7 +71,7 @@ export function countQueryString(query: Query): string {
 }
 
 export function queryKey(query: Query): string {
-  return [[...query.repos].sort().join(','), query.since, query.until, query.period, scheduleKey(query.workSchedule), query.compare ?? DEFAULT_COMPARISON].join('|');
+  return [[...query.repos].sort().join(','), query.since, query.until, query.period, scheduleKey(query.workSchedule), query.compare ?? DEFAULT_COMPARISON, query.largeLoadThreshold ?? DEFAULT_LARGE_LOAD_THRESHOLD].join('|');
 }
 
 export function selectionKey(query: Query): string {
@@ -82,6 +88,7 @@ export function queryString(query: Query, refresh: boolean): string {
     params.set('timezone', schedule.timeZone);
   }
   if (query.compare) params.set('compare', query.compare);
+  if (query.largeLoadThreshold !== undefined) params.set('largeLoadThreshold', String(query.largeLoadThreshold));
   if (refresh) params.set('refresh', 'true');
   return params.toString();
 }

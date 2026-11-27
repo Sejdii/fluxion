@@ -94,3 +94,15 @@ test('settingsOfferTheComparisonChoicesWithTheAppliedOneSelected', () => {
   expect(markup).toMatch(/<input type="radio"[^>]*checked=""[^>]*\/>Never/);
   expect(markup).not.toMatch(/<input type="radio"[^>]*checked=""[^>]*\/>Always/);
 });
+
+function controlsWith(applied: Query): string {
+  return renderToStaticMarkup(<Controls options={[{ path: 'app', name: 'app', host: 'github.com' }]} applied={applied} dayPeriodMaxMonths={12} today={new Date('2026-03-20T10:00:00Z')} onApply={() => undefined} disabled={false} />);
+}
+
+test('settingsShowTheDefaultLargeLoadThresholdWhenNoneIsChosen', () => {
+  expect(controlsWith(query)).toMatch(/Large load threshold.*<input type="number"[^>]*value="500"/);
+});
+
+test('settingsShowTheAppliedLargeLoadThreshold', () => {
+  expect(controlsWith({ ...query, largeLoadThreshold: 1500 })).toMatch(/<input type="number"[^>]*value="1500"/);
+});

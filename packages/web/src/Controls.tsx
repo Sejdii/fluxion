@@ -2,7 +2,7 @@ import type { RepositoryOption } from '@fluxion/core';
 import { useState } from 'react';
 import { Settings } from './Settings.js';
 import { groupByHost, toggledRepositories } from './repositories.js';
-import { DEFAULT_COMPARISON, applyChoice, isDayPeriodAllowed, isValidSchedule, scheduleKey, snapToYears, yearChoices, yearRange, yearsOf, type Period, type Query, type Range } from './query.js';
+import { DEFAULT_COMPARISON, DEFAULT_LARGE_LOAD_THRESHOLD, applyChoice, isDayPeriodAllowed, isValidSchedule, isValidThreshold, scheduleKey, snapToYears, yearChoices, yearRange, yearsOf, type Period, type Query, type Range } from './query.js';
 
 const PERIOD_CHOICES: { value: Period; label: string }[] = [
   { value: 'daily', label: 'Day' },
@@ -108,13 +108,17 @@ function Periods({ applied, dayAllowed, maxMonths, onPick }: { applied: Query; d
   );
 }
 
-function settingsKey({ workSchedule, compare }: Query): string {
-  return `${scheduleKey(workSchedule)}|${compare ?? DEFAULT_COMPARISON}`;
+function settingsKey({ workSchedule, compare, largeLoadThreshold }: Query): string {
+  return `${scheduleKey(workSchedule)}|${compare ?? DEFAULT_COMPARISON}|${largeLoadThreshold ?? DEFAULT_LARGE_LOAD_THRESHOLD}`;
+}
+
+function areSettingsValid({ workSchedule, largeLoadThreshold }: Query): boolean {
+  return isValidSchedule(workSchedule) && isValidThreshold(largeLoadThreshold ?? DEFAULT_LARGE_LOAD_THRESHOLD);
 }
 
 function isApplicable(draft: Query, applied: Query): boolean {
   const changed = draft.repos.join() !== applied.repos.join() || draft.since !== applied.since || draft.until !== applied.until || settingsKey(draft) !== settingsKey(applied);
-  return changed && draft.repos.length > 0 && draft.since !== '' && draft.until !== '' && draft.since <= draft.until && isValidSchedule(draft.workSchedule);
+  return changed && draft.repos.length > 0 && draft.since !== '' && draft.until !== '' && draft.since <= draft.until && areSettingsValid(draft);
 }
 
 export function Controls({ options, applied, dayPeriodMaxMonths, today, onApply, disabled }: ControlsProps) {
@@ -136,7 +140,7 @@ export function Controls({ options, applied, dayPeriodMaxMonths, today, onApply,
       <fieldset className="controls-body" disabled={disabled}>
         <Repositories options={options} repos={draft.repos} onChange={(repos) => change({ repos })} />
         {applied.period === 'yearly' ? <Years draft={draft} today={today} onChange={change} /> : <Dates draft={draft} onChange={change} />}
-        <Settings schedule={draft.workSchedule ?? null} onScheduleChange={(workSchedule) => change({ workSchedule })} compare={draft.compare ?? DEFAULT_COMPARISON} onCompareChange={(compare) => change({ compare })} />
+        <Settings schedule={draft.workSchedule ?? null} onScheduleChange={(workSchedule) => change({ workSchedule })} compare={draft.compare ?? DEFAULT_COMPARISON} onCompareChange={(compare) => change({ compare })} largeLoadThreshold={draft.largeLoadThreshold ?? DEFAULT_LARGE_LOAD_THRESHOLD} onLargeLoadThresholdChange={(largeLoadThreshold) => change({ largeLoadThreshold })} />
         <button className="apply" disabled={!isApplicable(draft, applied)} onClick={apply}>
           Apply
         </button>

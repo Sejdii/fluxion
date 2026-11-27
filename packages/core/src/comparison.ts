@@ -1,7 +1,7 @@
 import { DataError, UsageError } from './errors.js';
 
 const COMPARISON_MODES = ['auto', 'always', 'never'] as const;
-const LARGE_LOAD_THRESHOLD = 500;
+const DEFAULT_LARGE_LOAD_THRESHOLD = 500;
 
 export type ComparisonMode = (typeof COMPARISON_MODES)[number];
 
@@ -16,16 +16,24 @@ export function parseComparisonMode(text: string): ComparisonMode {
   return text;
 }
 
-async function largeLoadSkipOf(countSelected: () => Promise<number>): Promise<ComparisonSkip | null> {
+export function parseLargeLoadThreshold(text: string): number {
+  const threshold = Number(text);
+  if (!/^\d+$/.test(text) || !Number.isSafeInteger(threshold) || threshold < 1) {
+    throw new UsageError(`Invalid large load threshold "${text}". Use a whole number of at least 1`);
+  }
+  return threshold;
+}
+
+async function largeLoadSkipOf(threshold: number, countSelected: () => Promise<number>): Promise<ComparisonSkip | null> {
   try {
-    return (await countSelected()) > LARGE_LOAD_THRESHOLD ? { skipped: 'largeLoad', threshold: LARGE_LOAD_THRESHOLD } : null;
+    return (await countSelected()) > threshold ? { skipped: 'largeLoad', threshold } : null;
   } catch (error) {
     if (error instanceof DataError) return { skipped: 'countUnavailable' };
     throw error;
   }
 }
 
-export async function comparisonSkipOf(mode: ComparisonMode, countSelected: () => Promise<number>): Promise<ComparisonSkip | null> {
+export async function comparisonSkipOf(mode: ComparisonMode, countSelected: () => Promise<number>, threshold = DEFAULT_LARGE_LOAD_THRESHOLD): Promise<ComparisonSkip | null> {
   if (mode === 'never') return { skipped: 'turnedOff' };
-  return mode === 'auto' ? largeLoadSkipOf(countSelected) : null;
+  return mode === 'auto' ? largeLoadSkipOf(threshold, countSelected) : null;
 }

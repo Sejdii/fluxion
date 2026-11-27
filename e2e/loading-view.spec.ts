@@ -2,7 +2,7 @@ import type { Page } from '@playwright/test';
 import { DataError } from '../packages/core/src/index.js';
 import { expect, test } from './fixtures.js';
 import { metricRow, openDashboard, recentPullRequests } from './pull-requests.js';
-import { SLOW_LOAD_PULL_REQUEST_COUNT } from '../packages/web/src/query.js';
+import { DEFAULT_LARGE_LOAD_THRESHOLD } from '../packages/web/src/query.js';
 
 const API = '**/api/pr/jobs?*';
 const PROGRESS = /\d+ of \d+ months fetched/;
@@ -95,21 +95,64 @@ test('aFailedReloadShowsTheErrorWithoutOldDataAndRetryLoadsTheData', async ({ pa
   await expect(period(page, 'Month')).toHaveAttribute('aria-pressed', 'true');
 });
 
-test('aRangeAboveTheSlowLoadCountStartsShorterWithANoticeOfTheCount', async ({ page, data }) => {
-  await data.setPullRequests(recentPullRequests(Array.from({ length: SLOW_LOAD_PULL_REQUEST_COUNT + 1 }, () => 10)));
+test('aRangeAboveTheLargeLoadThresholdStartsShorterWithANoticeOfTheCount', async ({ page, data }) => {
+  await data.setPullRequests(recentPullRequests(Array.from({ length: DEFAULT_LARGE_LOAD_THRESHOLD + 1 }, () => 10)));
 
   await page.goto('/');
 
-  await expect(page.getByRole('note')).toContainText(`${(SLOW_LOAD_PULL_REQUEST_COUNT + 1).toLocaleString('en-US')} merged PRs`);
+  await expect(page.getByRole('note')).toContainText(`${(DEFAULT_LARGE_LOAD_THRESHOLD + 1).toLocaleString('en-US')} merged PRs`);
   await expect(page.getByRole('note')).toContainText('last 3 months');
 });
 
-test('aRangeBelowTheSlowLoadCountShowsNoNotice', async ({ page, data }) => {
+test('aRangeBelowTheLargeLoadThresholdShowsNoNotice', async ({ page, data }) => {
   await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
 
   await openDashboard(page);
 
   await expect(page.getByRole('note')).toHaveCount(0);
+});
+
+test('aStoredThresholdDecidesTheStartingRange', async ({ page, data }) => {
+  await page.addInitScript(() => localStorage.setItem('fluxion.largeLoadThreshold', '4'));
+  await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
+
+  await page.goto('/');
+
+  await expect(page.getByRole('note')).toContainText('last 3 months');
+});
+
+test('anInvalidThresholdCannotBeApplied', async ({ page, data }) => {
+  await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
+  await openDashboard(page);
+
+  await page.getByRole('spinbutton', { name: /Large load threshold/ }).fill('0');
+
+  await expect(page.getByRole('button', { name: 'Apply' })).toBeDisabled();
+});
+
+test('applyingAThresholdKeepsTheRangeOnScreen', async ({ page, data }) => {
+  await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
+  await openDashboard(page);
+  const since = await page.getByLabel('From').inputValue();
+
+  await page.getByRole('spinbutton', { name: /Large load threshold/ }).fill('4');
+  await page.getByRole('button', { name: 'Apply' }).click();
+
+  await expect(metricRow(page, 'PR size')).toContainText('30');
+  await expect(page.getByLabel('From')).toHaveValue(since);
+  await expect(page.getByRole('note')).toHaveCount(0);
+});
+
+test('anAppliedThresholdSurvivesAReload', async ({ page, data }) => {
+  await data.setPullRequests(recentPullRequests([10, 20, 30, 40, 50]));
+  await openDashboard(page);
+  await page.getByRole('spinbutton', { name: /Large load threshold/ }).fill('4');
+  await page.getByRole('button', { name: 'Apply' }).click();
+  await expect(metricRow(page, 'PR size')).toContainText('30');
+
+  await page.reload();
+
+  await expect(page.getByRole('note')).toContainText('last 3 months');
 });
 
 test('aSlowLoadShowsItsProgressUntilTheDataArrives', async ({ page, data }) => {
